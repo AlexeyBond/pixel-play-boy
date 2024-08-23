@@ -1,7 +1,19 @@
 ; /d/progs/sdcc/bin/as31.exe -l ./pixel_play_boy.a31
 
 
+;
 ; STC15F2K60S2 specific definitions
+;
+
+
+.equ    P0M0, 0x94
+.equ    P0M1, 0x93
+
+.equ    P1M0, 0x92
+.equ    P1M1, 0x91
+
+.equ    P2M0, 0x96
+.equ    P2M1, 0x95
 
 .equ    P3M0, 0xB2
 .equ    P3M1, 0xB1
@@ -36,8 +48,11 @@
 
 
 
-
+;
 ; Board layout definitions
+;
+
+
 
 .flag   BEEPER, P3.5        ; Beeper output, DIFFERENT FROM ORIGINAL LAYOUT
 
@@ -64,7 +79,7 @@
 .flag DISPLAY_R12,      P1.0
 .flag DISPLAY_R13,      P1.2
 .flag DISPLAY_R14,      P1.1
-.flag DISPLAY_R15,      P3.6
+.flag DISPLAY_R15,      P1.6
 
 ; Display columns
 .flag DISPLAY_C0,       P1.5
@@ -90,35 +105,97 @@
 .flag SMG_F,            P2.2
 .flag SMG_G,            P1.4
 
-.flag SMG_DOT,          P1.5 ; Missing
+.flag SMG_DP,           P1.5 ; Missing
 
 
+;
+; 7-segment display definitions
+;
 
+.equ    SS_SEGN_A, 0
+.equ    SS_SEGN_B, 1
+.equ    SS_SEGN_C, 2
+.equ    SS_SEGN_D, 3
+.equ    SS_SEGN_E, 4
+.equ    SS_SEGN_F, 5
+.equ    SS_SEGN_G, 6
+
+.equ    SS_SEGN_DP, 7
+
+.equ    SS_SEGB_A, (1 << SS_SEGN_A)
+.equ    SS_SEGB_B, (1 << SS_SEGN_B)
+.equ    SS_SEGB_C, (1 << SS_SEGN_C)
+.equ    SS_SEGB_D, (1 << SS_SEGN_D)
+.equ    SS_SEGB_E, (1 << SS_SEGN_E)
+.equ    SS_SEGB_F, (1 << SS_SEGN_F)
+.equ    SS_SEGB_G, (1 << SS_SEGN_G)
+
+.equ    SS_SEGB_DP, (1 << SS_SEGN_DP)
+
+.equ    SS_CHR_0, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F
+.equ    SS_CHR_1, SS_SEGB_B | SS_SEGB_C
+.equ    SS_CHR_2, SS_SEGB_A | SS_SEGB_B | SS_SEGB_G | SS_SEGB_E | SS_SEGB_D
+.equ    SS_CHR_3, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_G
+.equ    SS_CHR_4, SS_SEGB_B | SS_SEGB_C | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_5, SS_SEGB_A | SS_SEGB_F | SS_SEGB_G | SS_SEGB_C | SS_SEGB_D
+.equ    SS_CHR_6, SS_SEGB_A | SS_SEGB_F | SS_SEGB_G | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E
+.equ    SS_CHR_7, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C
+.equ    SS_CHR_8, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_9, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_F | SS_SEGB_G
+
+.equ    SS_CHR_A, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_B, SS_SEGB_C | SS_SEGB_D | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_C_UP, SS_SEGB_A | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F
+.equ    SS_CHR_C_LOW, SS_SEGB_D | SS_SEGB_E | SS_SEGB_G
+.equ    SS_CHR_D, SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_G
+.equ    SS_CHR_E, SS_SEGB_A | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_F, SS_SEGB_A | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_G, SS_SEGB_A | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F
+
+.equ    SS_CHR_O_UP, SS_CHR_0
+.equ    SS_CHR_O_LOW, SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_G
+.equ    SS_CHR_U_UP, SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F
+.equ    SS_CHR_U_LOW, SS_SEGB_C | SS_SEGB_D | SS_SEGB_E
+
+;
 ; Memory layout
+;
 
-.equ    tempo_tick, 0x7f      ; Tempo tick counter
 
+
+.equ    tempo_tick, 0x7f        ; Tempo tick counter
+
+.equ    display_coro_pch, 0x7e  ; Display co-routine program counter
+.equ    display_coro_pcl, 0x7d
+
+.equ    ss_value_2, 0x7c        ; Characters to display on seven-segment display
+.equ    ss_value_1, 0x7b
+.equ    ss_value_0, 0x7a
+
+.equ    display_var_a, 0x79     ; Display coroutine variables
+.equ    display_var_b, 0x78
+.equ    display_var_c, 0x77
 
 .equ    _test_note, 0x6F
 
 
 
 
+
+;
 ; Interrupt handlers
+;
+
+
 
 .org 0x0000             ; Reset handler
     ljmp    main
 
-;.org 0x000B             ; Timer 0 interrupt
+;.org 0x000B             ; Timer 0 interrupt - not used, T0 outputs tone to BEEPER using hardware connection
+;    cpl     BEEPER
 ;    reti
 
-.org 0x001B             ; Timer 1 interrupt
-    ljmp    t1i
-
-.org 0x0063             ; Timer 2 interrupt
-    reti
-
-t1i:
+.org 0x001B             ; Timer 1 interrupt - triggered on every 1/16 note
     djnz    tempo_tick, t1i_ret ; if (--tempo_tick) goto t1i_ret
 
     push    ACC
@@ -139,12 +216,27 @@ t1i:
 t1i_ret:
     reti
 
+.org 0x0063             ; Timer 2 interrupt - update display
+    push    ACC
+    push    0
+    push    DPL
+    push    DPH
+
+    lcall display_coro_run
+
+    pop     DPH
+    pop     DPL
+    pop     0
+    pop     ACC
+    reti
 
 
 
 
+
+;
 ; Entry point
-
+;
 main:
 
 ; Hardware initialization
@@ -153,12 +245,9 @@ main:
     mov     SP, #0x7F   ; Place stack in upper half of internal RAM
                         ; (upper 128 bytes of 256 bytes).
 
-
 ; Beeper init
+    lcall   mute_sound
 
-    mov     R0, #0
-    lcall   setup_note
-    
 ; Tempo counter init
     mov     TH1, 0x14
     mov     TL1, 0x95
@@ -169,9 +258,28 @@ main:
 ;
     mov _test_note, #1
 
+; Display setup
+    mov     P0M0, #0xFF         ; set display pin modes to push-pull
+    mov     P1M0, #0xFF
+    mov     P2M0, #0xFF
+    mov     P4M0, #0xFF
+    lcall display_coro_start    ; start display coroutine
+    mov     T2H, #0             ; start display timer (T2)
+    mov     T2L, #0
+    orl     AUXR, #AUXR_T2R
+    orl     IE2, #IE2_ET2
 
     setb    EA          ; Enable interrupts
     sjmp    *
+
+
+
+
+
+;
+; Display control subroutines
+;
+
 
 
 
@@ -292,6 +400,267 @@ display_row_off_tab:
     clr DISPLAY_R15
     ret
 
+; Enable column determined by A
+; UB if A >= 8
+; Uses A, DPTR
+display_col_on:
+    mov     DPTR, #display_col_on_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR
+display_col_on_tab:
+    clr     DISPLAY_C0              ; Columns are negative
+    ret
+; print('\n'.join(f".org display_col_on_tab + (4 * {i})\n    clr DISPLAY_C{i}\n    ret" for i in range(1, 8)))
+.org display_col_on_tab + (4 * 1)
+    clr DISPLAY_C1
+    ret
+.org display_col_on_tab + (4 * 2)
+    clr DISPLAY_C2
+    ret
+.org display_col_on_tab + (4 * 3)
+    clr DISPLAY_C3
+    ret
+.org display_col_on_tab + (4 * 4)
+    clr DISPLAY_C4
+    ret
+.org display_col_on_tab + (4 * 5)
+    clr DISPLAY_C5
+    ret
+.org display_col_on_tab + (4 * 6)
+    clr DISPLAY_C6
+    ret
+.org display_col_on_tab + (4 * 7)
+    clr DISPLAY_C7
+    ret
+
+display_col_off:
+    mov     DPTR, #display_col_off_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR
+display_col_off_tab:
+    setb    DISPLAY_C0              ; Columns are negative
+    ret
+; print('\n'.join(f".org display_col_off_tab + (4 * {i})\n    setb DISPLAY_C{i}\n    ret" for i in range(1, 8)))
+.org display_col_off_tab + (4 * 1)
+    setb DISPLAY_C1
+    ret
+.org display_col_off_tab + (4 * 2)
+    setb DISPLAY_C2
+    ret
+.org display_col_off_tab + (4 * 3)
+    setb DISPLAY_C3
+    ret
+.org display_col_off_tab + (4 * 4)
+    setb DISPLAY_C4
+    ret
+.org display_col_off_tab + (4 * 5)
+    setb DISPLAY_C5
+    ret
+.org display_col_off_tab + (4 * 6)
+    setb DISPLAY_C6
+    ret
+.org display_col_off_tab + (4 * 7)
+    setb DISPLAY_C7
+    ret
+
+; Disable all columns
+display_col_off_all:
+    setb    DISPLAY_C0
+    setb    DISPLAY_C1
+    setb    DISPLAY_C2
+    setb    DISPLAY_C3
+    setb    DISPLAY_C4
+    setb    DISPLAY_C5
+    setb    DISPLAY_C6
+    setb    DISPLAY_C7
+    ret
+
+; Disable all rows
+display_row_off_all:
+    clr     DISPLAY_R0
+    clr     DISPLAY_R1
+    clr     DISPLAY_R2
+    clr     DISPLAY_R3
+    clr     DISPLAY_R4
+    clr     DISPLAY_R5
+    clr     DISPLAY_R6
+    clr     DISPLAY_R7
+    clr     DISPLAY_R8
+    clr     DISPLAY_R9
+    clr     DISPLAY_R10
+    clr     DISPLAY_R11
+    clr     DISPLAY_R12
+    clr     DISPLAY_R13
+    clr     DISPLAY_R14
+    clr     DISPLAY_R15
+    ret
+
+; Enable a segment of 7-segment display determined by A
+; UB if A >= 8
+; Uses A, DPTR
+display_ss_segment_on:
+    mov     DPTR, #display_ss_segment_on_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR
+display_ss_segment_on_tab:
+; print('\n'.join(f".org display_ss_segment_on_tab + (4 * SS_SEGN_{s})\n    setb SMG_{s}\n    ret" for s in (*'ABCDEFG', 'DP')))
+.org display_ss_segment_on_tab + (4 * SS_SEGN_A)
+    setb SMG_A
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_B)
+    setb SMG_B
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_C)
+    setb SMG_C
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_D)
+    setb SMG_D
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_E)
+    setb SMG_E
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_F)
+    setb SMG_F
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_G)
+    setb SMG_G
+    ret
+.org display_ss_segment_on_tab + (4 * SS_SEGN_DP)
+    setb SMG_DP
+    ret
+
+; Disable a segment of 7-segment display determined by A
+; UB if A >= 8
+; Uses A, DPTR
+display_ss_segment_off:
+    mov     DPTR, #display_ss_segment_off_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR
+display_ss_segment_off_tab:
+; print('\n'.join(f".org display_ss_segment_off_tab + (4 * SS_SEGN_{s})\n    clr SMG_{s}\n    ret" for s in (*'ABCDEFG', 'DP')))
+.org display_ss_segment_off_tab + (4 * SS_SEGN_A)
+    clr SMG_A
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_B)
+    clr SMG_B
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_C)
+    clr SMG_C
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_D)
+    clr SMG_D
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_E)
+    clr SMG_E
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_F)
+    clr SMG_F
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_G)
+    clr SMG_G
+    ret
+.org display_ss_segment_off_tab + (4 * SS_SEGN_DP)
+    clr SMG_DP
+    ret
+
+; Disable all 7-segment display segments
+display_ss_segment_off_all:
+    clr SMG_A
+    clr SMG_B
+    clr SMG_C
+    clr SMG_D
+    clr SMG_E
+    clr SMG_F
+    clr SMG_G
+    clr SMG_DP
+    ret
+
+; Disable all 7-segment display digits
+display_ss_digit_off_all:
+    setb    DISPLAY_D0
+    setb    DISPLAY_D1
+    setb    DISPLAY_D2
+    ret
+
+; Enable a 7-segment digit determined by A
+; UB if A >= 3
+; Uses A, DPTR
+display_ss_digit_on:
+    mov     DPTR, #display_ss_digit_on_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR
+display_ss_digit_on_tab:
+; print('\n'.join(f".org display_ss_digit_on_tab + (4 * {i})\n    clr DISPLAY_D{i}\n    ret" for i in range(3)))
+.org display_ss_digit_on_tab + (4 * 0)
+    clr DISPLAY_D0
+    ret
+.org display_ss_digit_on_tab + (4 * 1)
+    clr DISPLAY_D1
+    ret
+.org display_ss_digit_on_tab + (4 * 2)
+    clr DISPLAY_D2
+    ret
+
+
+;
+; Display main (co)routine
+;
+
+; Run one step of display coroutine
+display_coro_run:
+    push    display_coro_pcl
+    push    display_coro_pch
+    ret
+
+; End a step of display coroutine
+; MUST be called directly from display coroutine only
+display_coro_yield:
+    pop     display_coro_pch
+    pop     display_coro_pcl
+    ret
+
+; Display coroutine start
+; Calling this will initialize display coroutine and return
+display_coro_start:
+    acall   display_row_off_all
+
+    acall   display_coro_yield
+display_coro_loop:
+    acall display_col_off_all
+
+    mov     R4, #8
+_t1:
+    dec R4
+    mov A, R4
+    rl A
+    lcall display_row_on
+    mov A, R4
+    lcall display_col_on
+    lcall   display_coro_yield
+    mov A, R4
+    rl A
+    lcall display_row_off
+    mov A, R4
+    lcall display_col_off
+    cjne R4, #0, _t1
+
+    
+
+    ljmp    display_coro_loop
+
+
+
+
+;
+; Sound control routines
+;
+
+
 
 ; Stop playing any sound
 mute_sound:
@@ -316,7 +685,7 @@ setup_note:
     mov     TL0, A
 
     orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle beeper pin on T0 overflow
-    setb    TR0
+    ;setb    TR0
 
     cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
 setup_note_need_x12:
