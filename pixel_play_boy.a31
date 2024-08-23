@@ -3,6 +3,9 @@
 
 ; STC15F2K60S2 specific definitions
 
+.equ    P3M0, 0xB2
+.equ    P3M1, 0xB1
+
 .equ    P4, 0xC0
 .equ    P4M0, 0xB4
 .equ    P4M1, 0xB3
@@ -13,8 +16,13 @@
 
 ; | T0x12 | T1x12 | UART_M0x6 | T2R | T2_C/~T | T2x12 | EXTRAM | S1ST2 |
 .equ    AUXR,           0x8E
+.equ    AUXR_T0x12,     (1 << 7)
 .equ    AUXR_T2x12,     (1 << 2)
 .equ    AUXR_T2R,       (1 << 4)
+
+; | - | EX4 | EX3 | EX2 | - | T2CLKO | T1CLKO | T0CLKO |
+.equ    INT_CLKO,       0x8F
+.equ    INT_CLKO_T0CLKO,(1)
 
 ; | - | ET4 | ET3 | ES4 | ES3 | ET2 | ESPI | ES2 |
 .equ    IE2,            0xAF
@@ -31,17 +39,17 @@
 
 ; Board layout definitions
 
-.flag   BEEPER, P5.5        ; Beeper output
+.flag   BEEPER, P3.5        ; Beeper output, DIFFERENT FROM ORIGINAL LAYOUT
 
 ; Buttons
 .flag BTN_UP,           P3.2
 .flag BTN_DOWN,         P3.6
 .flag BTN_RIGHT,        P3.3
-.flag BTN_LEFT,         P3.7
-.flag BTN_OK,           P3.0
+.flag BTN_LEFT,         P3.0
+.flag BTN_OK,           P3.7
 
 ; Display rows
-.flag DISPLAY_R0,       P2.0
+.flag DISPLAY_R0,       P2.6
 .flag DISPLAY_R1,       P4.5
 .flag DISPLAY_R2,       P0.4
 .flag DISPLAY_R3,       P2.7
@@ -53,25 +61,36 @@
 .flag DISPLAY_R9,       P0.7
 .flag DISPLAY_R10,      P1.3
 .flag DISPLAY_R11,      P0.6
-.flag DISPLAY_R12,      P1.4
+.flag DISPLAY_R12,      P1.0
 .flag DISPLAY_R13,      P1.2
 .flag DISPLAY_R14,      P1.1
-.flag DISPLAY_R15,      P3.4
+.flag DISPLAY_R15,      P3.6
 
 ; Display columns
-.flag DISPLAY_C0,       P2.4
-.flag DISPLAY_C1,       P2.6
-.flag DISPLAY_C2,       P4.4
-.flag DISPLAY_C3,       P2.1
-.flag DISPLAY_C4,       P4.2
-.flag DISPLAY_C5,       P2.2
-.flag DISPLAY_C6,       P3.5
-.flag DISPLAY_C7,       P1.7
+.flag DISPLAY_C0,       P1.5
+.flag DISPLAY_C1,       P4.1
+.flag DISPLAY_C2,       P2.2
+.flag DISPLAY_C3,       P1.4
+.flag DISPLAY_C4,       P2.1
+.flag DISPLAY_C5,       P4.4
+.flag DISPLAY_C6,       P2.0
+.flag DISPLAY_C7,       P2.4
 
 ; Display digits
 .flag DISPLAY_D0,       P2.3
 .flag DISPLAY_D1,       P2.5
-.flag DISPLAY_D2,       P4.1
+.flag DISPLAY_D2,       P4.2
+
+; Display digit segments (overlap with matrix columns)
+.flag SMG_A,            P4.1
+.flag SMG_B,            P2.4
+.flag SMG_C,            P2.1
+.flag SMG_D,            P2.0
+.flag SMG_E,            P4.4
+.flag SMG_F,            P2.2
+.flag SMG_G,            P1.4
+
+.flag SMG_DOT,          P1.5 ; Missing
 
 
 
@@ -90,14 +109,13 @@
 .org 0x0000             ; Reset handler
     ljmp    main
 
-.org 0x000B             ; Timer 0 interrupt
-    reti
+;.org 0x000B             ; Timer 0 interrupt
+;    reti
 
 .org 0x001B             ; Timer 1 interrupt
     ljmp    t1i
 
 .org 0x0063             ; Timer 2 interrupt
-    cpl     BEEPER      ; Invert beeper output
     reti
 
 t1i:
@@ -137,16 +155,8 @@ main:
 
 
 ; Beeper init
-    mov     P5M0, #0xFF
-    mov     P5M1, #0x00 ; Push-pull mode
-    setb    BEEPER
 
-    ;mov     T2H, #0x00
-    ;mov     T2L, #0x00
-    orl     IE2, #IE2_ET2                   ; enable T2 interrupts
-    ;orl     AUXR, #(AUXR_T2R | AUXR_T2x12)  ; start T2
-
-    mov     R0, #1
+    mov     R0, #0
     lcall   setup_note
     
 ; Tempo counter init
@@ -166,36 +176,162 @@ main:
 
 
 
+; Enable display row determined by A
+; UB if A >= 16
+; Uses A, DPTR
+display_row_on:
+    mov     DPTR, #display_row_on_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR   ; jmp display_row_on_tab + row * 4
+display_row_on_tab:
+    setb    DISPLAY_R0
+    ret
+; print('\n'.join(f".org display_row_on_tab + (4 * {i})\n    setb DISPLAY_R{i}\n    ret" for i in range(1, 16)))
+.org display_row_on_tab + (4 * 1)
+    setb DISPLAY_R1
+    ret
+.org display_row_on_tab + (4 * 2)
+    setb DISPLAY_R2
+    ret
+.org display_row_on_tab + (4 * 3)
+    setb DISPLAY_R3
+    ret
+.org display_row_on_tab + (4 * 4)
+    setb DISPLAY_R4
+    ret
+.org display_row_on_tab + (4 * 5)
+    setb DISPLAY_R5
+    ret
+.org display_row_on_tab + (4 * 6)
+    setb DISPLAY_R6
+    ret
+.org display_row_on_tab + (4 * 7)
+    setb DISPLAY_R7
+    ret
+.org display_row_on_tab + (4 * 8)
+    setb DISPLAY_R8
+    ret
+.org display_row_on_tab + (4 * 9)
+    setb DISPLAY_R9
+    ret
+.org display_row_on_tab + (4 * 10)
+    setb DISPLAY_R10
+    ret
+.org display_row_on_tab + (4 * 11)
+    setb DISPLAY_R11
+    ret
+.org display_row_on_tab + (4 * 12)
+    setb DISPLAY_R12
+    ret
+.org display_row_on_tab + (4 * 13)
+    setb DISPLAY_R13
+    ret
+.org display_row_on_tab + (4 * 14)
+    setb DISPLAY_R14
+    ret
+.org display_row_on_tab + (4 * 15)
+    setb DISPLAY_R15
+    ret
+
+; Disable display row determined by A
+; UB if A >= 16
+; Uses A, DPTR
+display_row_off:
+    mov     DPTR, #display_row_off_tab
+    rl      A
+    rl      A
+    jmp     @A + DPTR   ; jmp display_row_off_tab + row * 4
+display_row_off_tab:
+    clr     DISPLAY_R0
+    ret
+; print('\n'.join(f".org display_row_off_tab + (4 * {i})\n    clr DISPLAY_R{i}\n    ret" for i in range(1, 16)))
+.org display_row_off_tab + (4 * 1)
+    clr DISPLAY_R1
+    ret
+.org display_row_off_tab + (4 * 2)
+    clr DISPLAY_R2
+    ret
+.org display_row_off_tab + (4 * 3)
+    clr DISPLAY_R3
+    ret
+.org display_row_off_tab + (4 * 4)
+    clr DISPLAY_R4
+    ret
+.org display_row_off_tab + (4 * 5)
+    clr DISPLAY_R5
+    ret
+.org display_row_off_tab + (4 * 6)
+    clr DISPLAY_R6
+    ret
+.org display_row_off_tab + (4 * 7)
+    clr DISPLAY_R7
+    ret
+.org display_row_off_tab + (4 * 8)
+    clr DISPLAY_R8
+    ret
+.org display_row_off_tab + (4 * 9)
+    clr DISPLAY_R9
+    ret
+.org display_row_off_tab + (4 * 10)
+    clr DISPLAY_R10
+    ret
+.org display_row_off_tab + (4 * 11)
+    clr DISPLAY_R11
+    ret
+.org display_row_off_tab + (4 * 12)
+    clr DISPLAY_R12
+    ret
+.org display_row_off_tab + (4 * 13)
+    clr DISPLAY_R13
+    ret
+.org display_row_off_tab + (4 * 14)
+    clr DISPLAY_R14
+    ret
+.org display_row_off_tab + (4 * 15)
+    clr DISPLAY_R15
+    ret
 
 
-; Setup T2 to play note determined by R0.
+; Stop playing any sound
+mute_sound:
+    clr     TR0
+    anl     INT_CLKO, #(0xFF - INT_CLKO_T0CLKO)     ; use beeper pin as GPIO
+    setb    BEEPER                                  ; pull beeper pin up, so beeper is de-energized
+    ret
+
+
+; Setup T0 to play note determined by R0.
 ; UB if R0 > 127
 ; Uses A, DPTR
 setup_note:
-    anl     AUXR, #0xFF - (AUXR_T2R | AUXR_T2x12)   ; disable timer and clear x12 flag
-                                                    ; no bit-inversion, using 0xFF - X
-    mov     DPTR, #notes_table_t2h
+    mov     DPTR, #notes_table_th
     mov     A, R0
     movc    A, @A+DPTR
-    mov     T2H, A
+    mov     TH0, A
 
-    mov     DPTR, #notes_table_t2l
+    mov     DPTR, #notes_table_tl
     mov     A, R0
     movc    A, @A+DPTR
-    mov     T2L, A
+    mov     TL0, A
 
-    mov     DPTR, #notes_table_auxr
-    mov     A, R0
-    movc    A, @A+DPTR
-    orl     AUXR, A
+    orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle beeper pin on T0 overflow
+    setb    TR0
 
+    cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
+setup_note_need_x12:
+    orl     AUXR, #AUXR_T0x12
+    ret
+setup_note_ne:
+    jnc     setup_note_need_x12  ; if R0 > #FIRST_X12_NOTE_ID
+    anl     AUXR, #(0xFF - AUXR_T0x12)
     ret
 
-; Generated timing tables
+
+
 ; Note tables
 ; 1) T2H for each note
-notes_table_t2h:
-    .db 0x00        ; Mute
+notes_table_th:
     .db 0x2         ; Cs0
     .db 0x10        ; D0
     .db 0x1e        ; Ds0
@@ -323,9 +459,9 @@ notes_table_t2h:
     .db 0xfd        ; F10
     .db 0xfd        ; Fs10
     .db 0xfd        ; G10
+    .db 0xfe        ; Gs10
 ; 2) T2L for each note
-notes_table_t2l:
-    .db 0x00        ; Mute
+notes_table_tl:
     .db 0x55        ; Cs0
     .db 0x92        ; D0
     .db 0x2         ; Ds0
@@ -453,133 +589,31 @@ notes_table_t2l:
     .db 0xa4        ; F10
     .db 0xc6        ; Fs10
     .db 0xe6        ; G10
-; 3) AUXR for each note
-notes_table_auxr:
-    .db 0x00      ; Mute
-    .db 0x10        ; Cs0
-    .db 0x10        ; D0
-    .db 0x10        ; Ds0
-    .db 0x10        ; E0
-    .db 0x10        ; F0
-    .db 0x10        ; Fs0
-    .db 0x10        ; G0
-    .db 0x10        ; Gs0
-    .db 0x10        ; A0
-    .db 0x10        ; As0
-    .db 0x10        ; B0
-    .db 0x10        ; C1
-    .db 0x10        ; Cs1
-    .db 0x10        ; D1
-    .db 0x10        ; Ds1
-    .db 0x10        ; E1
-    .db 0x10        ; F1
-    .db 0x10        ; Fs1
-    .db 0x10        ; G1
-    .db 0x10        ; Gs1
-    .db 0x10        ; A1
-    .db 0x10        ; As1
-    .db 0x10        ; B1
-    .db 0x10        ; C2
-    .db 0x10        ; Cs2
-    .db 0x10        ; D2
-    .db 0x10        ; Ds2
-    .db 0x10        ; E2
-    .db 0x10        ; F2
-    .db 0x10        ; Fs2
-    .db 0x10        ; G2
-    .db 0x10        ; Gs2
-    .db 0x10        ; A2
-    .db 0x10        ; As2
-    .db 0x10        ; B2
-    .db 0x10        ; C3
-    .db 0x10        ; Cs3
-    .db 0x10        ; D3
-    .db 0x10        ; Ds3
-    .db 0x10        ; E3
-    .db 0x10        ; F3
-    .db 0x10        ; Fs3
-    .db 0x10        ; G3
-    .db 0x14        ; Gs3
-    .db 0x14        ; A3
-    .db 0x14        ; As3
-    .db 0x14        ; B3
-    .db 0x14        ; C4
-    .db 0x14        ; Cs4
-    .db 0x14        ; D4
-    .db 0x14        ; Ds4
-    .db 0x14        ; E4
-    .db 0x14        ; F4
-    .db 0x14        ; Fs4
-    .db 0x14        ; G4
-    .db 0x14        ; Gs4
-    .db 0x14        ; A4
-    .db 0x14        ; As4
-    .db 0x14        ; B4
-    .db 0x14        ; C5
-    .db 0x14        ; Cs5
-    .db 0x14        ; D5
-    .db 0x14        ; Ds5
-    .db 0x14        ; E5
-    .db 0x14        ; F5
-    .db 0x14        ; Fs5
-    .db 0x14        ; G5
-    .db 0x14        ; Gs5
-    .db 0x14        ; A5
-    .db 0x14        ; As5
-    .db 0x14        ; B5
-    .db 0x14        ; C6
-    .db 0x14        ; Cs6
-    .db 0x14        ; D6
-    .db 0x14        ; Ds6
-    .db 0x14        ; E6
-    .db 0x14        ; F6
-    .db 0x14        ; Fs6
-    .db 0x14        ; G6
-    .db 0x14        ; Gs6
-    .db 0x14        ; A6
-    .db 0x14        ; As6
-    .db 0x14        ; B6
-    .db 0x14        ; C7
-    .db 0x14        ; Cs7
-    .db 0x14        ; D7
-    .db 0x14        ; Ds7
-    .db 0x14        ; E7
-    .db 0x14        ; F7
-    .db 0x14        ; Fs7
-    .db 0x14        ; G7
-    .db 0x14        ; Gs7
-    .db 0x14        ; A7
-    .db 0x14        ; As7
-    .db 0x14        ; B7
-    .db 0x14        ; C8
-    .db 0x14        ; Cs8
-    .db 0x14        ; D8
-    .db 0x14        ; Ds8
-    .db 0x14        ; E8
-    .db 0x14        ; F8
-    .db 0x14        ; Fs8
-    .db 0x14        ; G8
-    .db 0x14        ; Gs8
-    .db 0x14        ; A8
-    .db 0x14        ; As8
-    .db 0x14        ; B8
-    .db 0x14        ; C9
-    .db 0x14        ; Cs9
-    .db 0x14        ; D9
-    .db 0x14        ; Ds9
-    .db 0x14        ; E9
-    .db 0x14        ; F9
-    .db 0x14        ; Fs9
-    .db 0x14        ; G9
-    .db 0x14        ; Gs9
-    .db 0x14        ; A9
-    .db 0x14        ; As9
-    .db 0x14        ; B9
-    .db 0x14        ; C10
-    .db 0x14        ; Cs10
-    .db 0x14        ; D10
-    .db 0x14        ; Ds10
-    .db 0x14        ; E10
-    .db 0x14        ; F10
-    .db 0x14        ; Fs10
-    .db 0x14        ; G10
+    .db 0x4         ; Gs10
+; Index of first note that does need full system frequency
+.equ    FIRST_X12_NOTE_ID, 43
+; Tempo tables
+; 1) TH per tempo
+tempo_table_th:
+    .db 0x14        ; 20 bpm
+    .db 0x32        ; 40 bpm
+    .db 0x48        ; 60 bpm
+    .db 0x32        ; 80 bpm
+    .db 0x76        ; 120 bpm
+    .db 0x14        ; 140 bpm
+; 2) TL per tempo
+tempo_table_tl:
+    .db 0x95        ; 20 bpm
+    .db 0x2         ; 40 bpm
+    .db 0xe5        ; 60 bpm
+    .db 0x2         ; 80 bpm
+    .db 0xac        ; 120 bpm
+    .db 0x95        ; 140 bpm
+; 3) Software divider per tempo
+tempo_table_sd:
+    .db 0x7         ; 20 bpm
+    .db 0x4         ; 40 bpm
+    .db 0x3         ; 60 bpm
+    .db 0x2         ; 80 bpm
+    .db 0x2         ; 120 bpm
+    .db 0x1         ; 140 bpm

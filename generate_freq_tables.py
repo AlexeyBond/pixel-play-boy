@@ -3,7 +3,7 @@
 SYSTEM_CLOCK = 27_000_000
 
 A4_FREQ = 440
-RANGE = (-44, 83)
+RANGE = (-44, 84)
 
 BPMS = [20, 40, 60, 80, 120, 140]
 
@@ -11,7 +11,7 @@ BPMS = [20, 40, 60, 80, 120, 140]
 from sys import stderr
 from typing import NamedTuple
 
-assert len(range(*RANGE)) == 127
+assert len(range(*RANGE)) == 128
 
 NOTE_NAMES = ['A', 'As', 'B', 'C', 'Cs', 'D', 'Ds', 'E', 'F', 'Fs', 'G', 'Gs']
 MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11]
@@ -46,29 +46,31 @@ for nn in range(*RANGE):
 
 	notes.append(Note(name=name, octave=octave, freq=freq, divider=divider, div12=div12))
 
+first_x12_note_id = next(i for (i, note) in enumerate(notes) if not note.div12)
 
 
 print('; Note tables')
 print('; 1) T2H for each note')
-print('notes_table_t2h:')
-print('    .db 0x00        ; Mute')
+print('notes_table_th:')
 
 for note in notes:
 	print(f'    .db {hex((2**16 - note.divider) >> 8)}'.ljust(20), f'; {note.name}{note.octave}', sep='')
 
 print('; 2) T2L for each note')
-print('notes_table_t2l:')
-print('    .db 0x00        ; Mute')
+print('notes_table_tl:')
 
 for note in notes:
 	print(f'    .db {hex((2**16 - note.divider) & 0xFF)}'.ljust(20), f'; {note.name}{note.octave}', sep='')
 
-print('; 3) AUXR for each note')
-print('notes_table_auxr:')
-print('    .db 0x00      ; Mute')
+print("; Index of first note that does need full system frequency")
+print(f'.equ    FIRST_X12_NOTE_ID, {first_x12_note_id}')
 
-for note in notes:
-	print(f'    .db {hex((1 << 4) | (0 if note.div12 else (1 << 2)))}'.ljust(20), f'; {note.name}{note.octave}', sep='')
+# print('; 3) AUXR for each note')
+# print('notes_table_auxr:')
+# print('    .db 0x00      ; Mute')
+
+# for note in notes:
+# 	print(f'    .db {hex((1 << 4) | (0 if note.div12 else (1 << 2)))}'.ljust(20), f'; {note.name}{note.octave}', sep='')
 
 
 print('; Tempo tables')
@@ -88,7 +90,7 @@ def calc_tempo_dividers(bpm) -> (int, int):
 
 	resulting_div = divider_1 * divider_2
 
-	print(f"BPM = {bpm}, divider = {total_div} ~= {resulting_div} = {divider_1} * {divider_2} (delta={total_div - float(resulting_div)})")
+	print(f"BPM = {bpm}, divider = {total_div} ~= {resulting_div} = {divider_1} * {divider_2} (delta={total_div - float(resulting_div)})", file=stderr)
 
 	return divider_1, divider_2
 

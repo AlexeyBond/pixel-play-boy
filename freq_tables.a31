@@ -1,7 +1,6 @@
 ; Note tables
 ; 1) T2H for each note
-notes_table_t2h:
-    .db 0x00        ; Mute
+notes_table_th:
     .db 0x2         ; Cs0
     .db 0x10        ; D0
     .db 0x1e        ; Ds0
@@ -129,9 +128,9 @@ notes_table_t2h:
     .db 0xfd        ; F10
     .db 0xfd        ; Fs10
     .db 0xfd        ; G10
+    .db 0xfe        ; Gs10
 ; 2) T2L for each note
-notes_table_t2l:
-    .db 0x00        ; Mute
+notes_table_tl:
     .db 0x55        ; Cs0
     .db 0x92        ; D0
     .db 0x2         ; Ds0
@@ -259,133 +258,31 @@ notes_table_t2l:
     .db 0xa4        ; F10
     .db 0xc6        ; Fs10
     .db 0xe6        ; G10
-; 3) AUXR for each note
-notes_table_auxr:
-    .db 0x00      ; Mute
-    .db 0x10        ; Cs0
-    .db 0x10        ; D0
-    .db 0x10        ; Ds0
-    .db 0x10        ; E0
-    .db 0x10        ; F0
-    .db 0x10        ; Fs0
-    .db 0x10        ; G0
-    .db 0x10        ; Gs0
-    .db 0x10        ; A0
-    .db 0x10        ; As0
-    .db 0x10        ; B0
-    .db 0x10        ; C1
-    .db 0x10        ; Cs1
-    .db 0x10        ; D1
-    .db 0x10        ; Ds1
-    .db 0x10        ; E1
-    .db 0x10        ; F1
-    .db 0x10        ; Fs1
-    .db 0x10        ; G1
-    .db 0x10        ; Gs1
-    .db 0x10        ; A1
-    .db 0x10        ; As1
-    .db 0x10        ; B1
-    .db 0x10        ; C2
-    .db 0x10        ; Cs2
-    .db 0x10        ; D2
-    .db 0x10        ; Ds2
-    .db 0x10        ; E2
-    .db 0x10        ; F2
-    .db 0x10        ; Fs2
-    .db 0x10        ; G2
-    .db 0x10        ; Gs2
-    .db 0x10        ; A2
-    .db 0x10        ; As2
-    .db 0x10        ; B2
-    .db 0x10        ; C3
-    .db 0x10        ; Cs3
-    .db 0x10        ; D3
-    .db 0x10        ; Ds3
-    .db 0x10        ; E3
-    .db 0x10        ; F3
-    .db 0x10        ; Fs3
-    .db 0x10        ; G3
-    .db 0x14        ; Gs3
-    .db 0x14        ; A3
-    .db 0x14        ; As3
-    .db 0x14        ; B3
-    .db 0x14        ; C4
-    .db 0x14        ; Cs4
-    .db 0x14        ; D4
-    .db 0x14        ; Ds4
-    .db 0x14        ; E4
-    .db 0x14        ; F4
-    .db 0x14        ; Fs4
-    .db 0x14        ; G4
-    .db 0x14        ; Gs4
-    .db 0x14        ; A4
-    .db 0x14        ; As4
-    .db 0x14        ; B4
-    .db 0x14        ; C5
-    .db 0x14        ; Cs5
-    .db 0x14        ; D5
-    .db 0x14        ; Ds5
-    .db 0x14        ; E5
-    .db 0x14        ; F5
-    .db 0x14        ; Fs5
-    .db 0x14        ; G5
-    .db 0x14        ; Gs5
-    .db 0x14        ; A5
-    .db 0x14        ; As5
-    .db 0x14        ; B5
-    .db 0x14        ; C6
-    .db 0x14        ; Cs6
-    .db 0x14        ; D6
-    .db 0x14        ; Ds6
-    .db 0x14        ; E6
-    .db 0x14        ; F6
-    .db 0x14        ; Fs6
-    .db 0x14        ; G6
-    .db 0x14        ; Gs6
-    .db 0x14        ; A6
-    .db 0x14        ; As6
-    .db 0x14        ; B6
-    .db 0x14        ; C7
-    .db 0x14        ; Cs7
-    .db 0x14        ; D7
-    .db 0x14        ; Ds7
-    .db 0x14        ; E7
-    .db 0x14        ; F7
-    .db 0x14        ; Fs7
-    .db 0x14        ; G7
-    .db 0x14        ; Gs7
-    .db 0x14        ; A7
-    .db 0x14        ; As7
-    .db 0x14        ; B7
-    .db 0x14        ; C8
-    .db 0x14        ; Cs8
-    .db 0x14        ; D8
-    .db 0x14        ; Ds8
-    .db 0x14        ; E8
-    .db 0x14        ; F8
-    .db 0x14        ; Fs8
-    .db 0x14        ; G8
-    .db 0x14        ; Gs8
-    .db 0x14        ; A8
-    .db 0x14        ; As8
-    .db 0x14        ; B8
-    .db 0x14        ; C9
-    .db 0x14        ; Cs9
-    .db 0x14        ; D9
-    .db 0x14        ; Ds9
-    .db 0x14        ; E9
-    .db 0x14        ; F9
-    .db 0x14        ; Fs9
-    .db 0x14        ; G9
-    .db 0x14        ; Gs9
-    .db 0x14        ; A9
-    .db 0x14        ; As9
-    .db 0x14        ; B9
-    .db 0x14        ; C10
-    .db 0x14        ; Cs10
-    .db 0x14        ; D10
-    .db 0x14        ; Ds10
-    .db 0x14        ; E10
-    .db 0x14        ; F10
-    .db 0x14        ; Fs10
-    .db 0x14        ; G10
+    .db 0x4         ; Gs10
+; Index of first note that does need full system frequency
+.equ    FIRST_X12_NOTE_ID, 43
+; Tempo tables
+; 1) TH per tempo
+tempo_table_th:
+    .db 0x14        ; 20 bpm
+    .db 0x32        ; 40 bpm
+    .db 0x48        ; 60 bpm
+    .db 0x32        ; 80 bpm
+    .db 0x76        ; 120 bpm
+    .db 0x14        ; 140 bpm
+; 2) TL per tempo
+tempo_table_tl:
+    .db 0x95        ; 20 bpm
+    .db 0x2         ; 40 bpm
+    .db 0xe5        ; 60 bpm
+    .db 0x2         ; 80 bpm
+    .db 0xac        ; 120 bpm
+    .db 0x95        ; 140 bpm
+; 3) Software divider per tempo
+tempo_table_sd:
+    .db 0x7         ; 20 bpm
+    .db 0x4         ; 40 bpm
+    .db 0x3         ; 60 bpm
+    .db 0x2         ; 80 bpm
+    .db 0x2         ; 120 bpm
+    .db 0x1         ; 140 bpm
