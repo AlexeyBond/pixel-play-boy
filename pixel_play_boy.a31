@@ -105,7 +105,7 @@
 .flag SMG_F,            P2.2
 .flag SMG_G,            P1.4
 
-.flag SMG_DP,           P1.5 ; Missing
+.flag SMG_DP,           P1.5 ; Missing on original board
 
 
 ;
@@ -161,22 +161,24 @@
 ; Memory layout
 ;
 
+.equ    stack_bottom, 0x7f                      ; Stack takes the top half of internal RAM
 
+.equ    tempo_tick, stack_bottom                ; Tempo tick counter
 
-.equ    tempo_tick, 0x7f        ; Tempo tick counter
+.equ    display_coro_pch, tempo_tick - 1        ; Display co-routine program counter
+.equ    display_coro_pcl, display_coro_pch - 1
 
-.equ    display_coro_pch, 0x7e  ; Display co-routine program counter
-.equ    display_coro_pcl, 0x7d
+.equ    ss_value_2, display_coro_pcl - 1        ; Characters to display on seven-segment display
+.equ    ss_value_1, ss_value_2 - 1
+.equ    ss_value_0, ss_value_1 - 1
 
-.equ    ss_value_2, 0x7c        ; Characters to display on seven-segment display
-.equ    ss_value_1, 0x7b
-.equ    ss_value_0, 0x7a
+.equ    seq_notes, ss_value_0 - 16              ; Current sequence of notes.
+                                                ; 16 notes, one byte per note, [0;7] each,
+                                                ; where 0 is silence, 1..7 are pitches of current scale
 
-.equ    display_var_a, 0x79     ; Display coroutine variables
-.equ    display_var_b, 0x78
-.equ    display_var_c, 0x77
+.equ    seq_cursor, seq_notes - 1               ; Index of currently playing note in `seq_notes`
 
-.equ    _test_note, 0x6F
+.equ    _test_note, 0x4F
 
 
 
@@ -204,10 +206,13 @@
     push    DPH
 
     mov     tempo_tick, #7
-    inc     _test_note
-    anl     _test_note, #0b01111111
-    mov     R0, _test_note
-    lcall   setup_note
+
+
+    mov     A, seq_cursor
+    inc     A
+    anl     A, #0x0f
+    mov     seq_cursor, A
+    lcall   setup_current_note
 
     pop     DPH
     pop     DPL
@@ -242,11 +247,7 @@ main:
 ; Hardware initialization
 
 ; Stack init
-    mov     SP, #0x7F   ; Place stack in upper half of internal RAM
-                        ; (upper 128 bytes of 256 bytes).
-
-; Beeper init
-    lcall   mute_sound
+    mov     SP, #stack_bottom
 
 ; Tempo counter init
     mov     TH1, 0x14
@@ -264,7 +265,7 @@ main:
     mov     P2M0, #0xFF
     mov     P4M0, #0xFF
     lcall display_coro_start    ; start display coroutine
-    mov     T2H, #0xFB          ; start display timer (T2)
+    mov     T2H, #0xFE          ; start display timer (T2)
     mov     T2L, #0
     orl     AUXR, #AUXR_T2R
     orl     IE2, #IE2_ET2
@@ -273,6 +274,29 @@ main:
     mov     ss_value_1, #SS_CHR_U_LOW
     mov     ss_value_2, #SS_CHR_O_UP
 
+; Sequence setup
+    mov     (seq_notes + 0), #1
+    mov     (seq_notes + 1), #2
+    mov     (seq_notes + 2), #3
+    mov     (seq_notes + 3), #4
+    mov     (seq_notes + 4), #5
+    mov     (seq_notes + 5), #6
+    mov     (seq_notes + 6), #7
+    mov     (seq_notes + 7), #0
+    mov     (seq_notes + 8), #1
+    mov     (seq_notes + 9), #2
+    mov     (seq_notes + 10), #3
+    mov     (seq_notes + 11), #4
+    mov     (seq_notes + 12), #5
+    mov     (seq_notes + 13), #6
+    mov     (seq_notes + 14), #7
+    mov     (seq_notes + 15), #0
+
+    mov     seq_cursor, #0
+
+    lcall   setup_current_note
+
+;
     setb    EA          ; Enable interrupts
     sjmp    *
 
@@ -639,73 +663,114 @@ display_coro_loop:
 ; 7-segment display
     lcall   display_ss_digit_off_all
     lcall   display_ss_segment_off_all
-    mov     display_var_a, #0           ; var_a = digit index
+    clr     A
 _display_coro_ss_digits_loop:
-    mov     A, display_var_a
+    mov     R7, A                       ; R7 = digit index
     lcall   display_ss_digit_on
     mov     A, #ss_value_0
-    add     A, display_var_a
+    add     A, R7
     mov     R0, A
-    mov     display_var_b, @R0          ; var_b = segment bits
+    mov     6, @R0                      ; R6 = segment bits
 
-    mov     display_var_c, #0           ; var_c = segment index
+    clr     A
 _display_coro_ss_segments_loop:
-    mov     A, display_var_b
+    mov     R5, A                       ; R5 = segment index
+    mov     A, R6
     rrc     A
-    mov     display_var_b, A
+    mov     R6, A
     jnc     _display_coro_ss_segment_off
-    mov     A, display_var_c
+    mov     A, R5
     lcall   display_ss_segment_on
 _display_coro_ss_segment_off:
     lcall   display_coro_yield
 
-    mov     A, display_var_c
+    mov     A, R5
     lcall   display_ss_segment_off
 
-    inc     display_var_c
-    mov     A, display_var_c
+    mov     A, R5
+    inc     A
     cjne    A, #8, _display_coro_ss_segments_loop
 
     lcall   display_ss_digit_off_all
-    inc     display_var_a
-    mov     A, display_var_a
+    mov     A, R7
+    inc     A
     cjne    A, #3, _display_coro_ss_digits_loop
 
 
 ; Matrix display
 
+; Sequence
 
-    acall display_col_off_all
+    lcall   display_col_off_all
 
+    clr     A
+_display_notes_loop:
+    mov     R5, A                       ; R5 = note index
 
+    lcall   display_row_on
 
-    mov     R4, #8
-_t1:
-    dec R4
-    mov A, R4
-    rl A
-    lcall display_row_on
-    mov A, R4
-    lcall display_col_on
+    mov     A, R5
+    add     A, #seq_notes
+    mov     R0, A
+    mov     A, @R0                      ; A = current note
+    anl     A, #0x07                    ; (just in case...)
+    cjne    A, #0, _display_note_visible
     lcall   display_coro_yield
-    mov A, R4
-    rl A
-    lcall display_row_off
-    mov A, R4
-    lcall display_col_off
-    cjne R4, #0, _t1
+    sjmp    _display_note_end
+_display_note_visible:
+    dec     A
+    mov     R6, A                       ; R6 = note column
+    lcall   display_col_on
+    lcall   display_coro_yield
+    mov     A, R6
+    lcall   display_col_off
+_display_note_end:
+    mov     A, R5
+    lcall   display_row_off
 
-    
+    mov     A, R5
+    inc     A
+    cjne    A, #16, _display_notes_loop
 
-    ljmp    display_coro_loop
+; Playback cursor
+
+    clr     DISPLAY_C7
+    mov     A, seq_cursor
+    anl     A, #0x0f
+    mov     R5, A
+    lcall   display_row_on
+    lcall   display_coro_yield
+    mov     A, R5
+    lcall   display_row_off
+    setb    DISPLAY_C7
 
 
+; End of display coroutine loop
+    lcall    display_coro_loop
 
 
 ;
 ; Sound control routines
 ;
 
+
+; Play current note based on seq_* (and TODO current scale)
+; Uses A, DPTR
+setup_current_note:
+    mov     A, #seq_notes
+    add     A, seq_cursor
+    mov     R0, A
+    mov     A, @R0
+    anl     A, #0x07
+    cjne    A, #0, _setup_current_note_nonzero
+    sjmp    mute_sound
+_setup_current_note_nonzero:
+    dec     A
+
+    add     A, #36 ; TODO: Adjust to scale
+
+    mov     R0, A
+    sjmp    setup_note
 
 
 ; Stop playing any sound
@@ -731,7 +796,7 @@ setup_note:
     mov     TL0, A
 
     orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle beeper pin on T0 overflow
-    ;setb    TR0
+    setb    TR0
 
     cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
 setup_note_need_x12:
