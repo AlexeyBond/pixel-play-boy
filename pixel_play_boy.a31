@@ -177,12 +177,30 @@
                                                 ; where 0 is silence, 1..7 are pitches of current scale
 
 .equ    seq_cursor, seq_notes - 1               ; Index of currently playing note in `seq_notes`
+.equ    seq_edit_cursor, seq_cursor - 1         ; Index of currently edited note in `seq_note`
+                                                ; Outside of [0;15] range if not editing note
+.equ    display_blink_cnt, seq_edit_cursor - 1  ; Cursor blinking counter
 
-.equ    _test_note, 0x4F
 
+.equ    aux_bits, 0x2F                          ; Highest bit-addressable register
 
+.flag   display_blink_on, aux_bits.0            ; If blinking element on display should be enabled
 
+.equ    btns_pressed, aux_bits - 1              ; Buttons currently pressed
 
+.flag   btn_pressed_ok, btns_pressed.0
+.flag   btn_pressed_up, btns_pressed.1
+.flag   btn_pressed_down, btns_pressed.2
+.flag   btn_pressed_right, btns_pressed.3
+.flag   btn_pressed_left, btns_pressed.4
+
+.equ    btns_just_pressed, btns_pressed - 1     ; Buttons pressed since last check
+
+.flag   btn_just_pressed_ok, btns_just_pressed.0
+.flag   btn_just_pressed_up, btns_just_pressed.1
+.flag   btn_just_pressed_down, btns_just_pressed.2
+.flag   btn_just_pressed_right, btns_just_pressed.3
+.flag   btn_just_pressed_left, btns_just_pressed.4
 
 ;
 ; Interrupt handlers
@@ -228,6 +246,7 @@ t1i_ret:
     push    DPH
 
     lcall display_coro_run
+    lcall input_check
 
     pop     DPH
     pop     DPL
@@ -255,9 +274,6 @@ main:
     orl     IE, #(1 << 3)
     setb    TR1
     mov     tempo_tick, #7
-
-;
-    mov _test_note, #1
 
 ; Display setup
     mov     P0M0, #0xFF         ; set display pin modes to push-pull
@@ -293,15 +309,61 @@ main:
     mov     (seq_notes + 15), #0
 
     mov     seq_cursor, #0
+    mov     seq_edit_cursor, #2
 
     lcall   setup_current_note
 
 ;
     setb    EA          ; Enable interrupts
-    sjmp    *
+    
+    sjmp    interaction_edit_notes
 
 
 
+interaction_edit_notes:
+    jb      btn_just_pressed_up, interaction_edit_notes_cursor_up
+    jb      btn_just_pressed_down, interaction_edit_notes_cursor_down
+    jb      btn_just_pressed_right, interaction_edit_notes_note_up
+    jb      btn_just_pressed_left, interaction_edit_notes_note_down
+    sjmp    interaction_edit_notes
+
+interaction_edit_notes_cursor_up:
+    clr     btn_just_pressed_up
+    mov     A, seq_edit_cursor
+    dec     A
+    anl     A, #0x0f
+    mov     seq_edit_cursor, A
+    sjmp    interaction_edit_notes
+
+interaction_edit_notes_cursor_down:
+    clr     btn_just_pressed_down
+    mov     A, seq_edit_cursor
+    inc     A
+    anl     A, #0x0f
+    mov     seq_edit_cursor, A
+    sjmp    interaction_edit_notes
+
+interaction_edit_notes_note_up:
+    clr     btn_just_pressed_right
+    mov     A, seq_edit_cursor
+    add     A, #seq_notes
+    mov     R0, A
+    mov     A, @R0
+    inc     A
+    anl     A, #0x07
+    mov     @R0, A
+    sjmp    interaction_edit_notes
+
+interaction_edit_notes_note_down:
+    clr     btn_just_pressed_left
+    mov     A, seq_edit_cursor
+    add     A, #seq_notes
+    mov     R0, A
+    mov     A, @R0
+    dec     A
+    anl     A, #0x07
+    mov     @R0, A
+    sjmp    interaction_edit_notes
 
 
 ;
@@ -636,6 +698,45 @@ display_ss_digit_on_tab:
 
 
 ;
+; Input
+;
+
+
+
+; Checks input, updates btns_pressed, btns_just_pressed
+; Uses A, R0
+input_check:
+    clr     A
+    jnb     BTN_OK, _input_check_no_ok
+    setb    ACC.0
+_input_check_no_ok:
+    jb      BTN_UP, _input_check_no_up
+    setb    ACC.1
+_input_check_no_up:
+    jb      BTN_DOWN, _input_check_no_down
+    setb    ACC.2
+_input_check_no_down:
+    jb      BTN_RIGHT, _input_check_no_right
+    setb    ACC.3
+_input_check_no_right:
+    jb      BTN_LEFT, _input_check_no_left
+    setb    ACC.4
+_input_check_no_left:
+    mov     R0, A                           ; R0 = pressed
+    mov     A, btns_pressed
+    cpl     A
+    anl     A, R0                           ; A = pressed & ~btns_pressed
+    orl     btns_just_pressed, A
+
+    mov     A, R0
+    mov     btns_pressed, A
+    anl     btns_just_pressed, A            ; btns_just_pressed &= btns_pressed
+                                            ; Non-pressed buttons are no longer "just pressed"
+    ret
+
+
+
+;
 ; Display main (co)routine
 ;
 
@@ -658,7 +759,15 @@ display_coro_start:
     acall   display_row_off_all
 
     acall   display_coro_yield
+
+    mov     display_blink_cnt, #1
 display_coro_loop:
+
+; Blinking state update
+    djnz    display_blink_cnt, _display_coro_blnk_noover
+    cpl     display_blink_on
+    mov     display_blink_cnt, #10
+_display_coro_blnk_noover:
 
 ; 7-segment display
     lcall   display_ss_digit_off_all
@@ -707,6 +816,9 @@ _display_coro_ss_segment_off:
 _display_notes_loop:
     mov     R5, A                       ; R5 = note index
 
+    cjne    A, seq_edit_cursor, _display_notes_notedit
+    jnb     display_blink_on, _display_note_end
+_display_notes_notedit:
     lcall   display_row_on
 
     mov     A, R5
