@@ -264,10 +264,14 @@ main:
     mov     P2M0, #0xFF
     mov     P4M0, #0xFF
     lcall display_coro_start    ; start display coroutine
-    mov     T2H, #0             ; start display timer (T2)
+    mov     T2H, #0xFB          ; start display timer (T2)
     mov     T2L, #0
     orl     AUXR, #AUXR_T2R
     orl     IE2, #IE2_ET2
+
+    mov     ss_value_0, #SS_CHR_O_UP
+    mov     ss_value_1, #SS_CHR_U_LOW
+    mov     ss_value_2, #SS_CHR_O_UP
 
     setb    EA          ; Enable interrupts
     sjmp    *
@@ -631,7 +635,49 @@ display_coro_start:
 
     acall   display_coro_yield
 display_coro_loop:
+
+; 7-segment display
+    lcall   display_ss_digit_off_all
+    lcall   display_ss_segment_off_all
+    mov     display_var_a, #0           ; var_a = digit index
+_display_coro_ss_digits_loop:
+    mov     A, display_var_a
+    lcall   display_ss_digit_on
+    mov     A, #ss_value_0
+    add     A, display_var_a
+    mov     R0, A
+    mov     display_var_b, @R0          ; var_b = segment bits
+
+    mov     display_var_c, #0           ; var_c = segment index
+_display_coro_ss_segments_loop:
+    mov     A, display_var_b
+    rrc     A
+    mov     display_var_b, A
+    jnc     _display_coro_ss_segment_off
+    mov     A, display_var_c
+    lcall   display_ss_segment_on
+_display_coro_ss_segment_off:
+    lcall   display_coro_yield
+
+    mov     A, display_var_c
+    lcall   display_ss_segment_off
+
+    inc     display_var_c
+    mov     A, display_var_c
+    cjne    A, #8, _display_coro_ss_segments_loop
+
+    lcall   display_ss_digit_off_all
+    inc     display_var_a
+    mov     A, display_var_a
+    cjne    A, #3, _display_coro_ss_digits_loop
+
+
+; Matrix display
+
+
     acall display_col_off_all
+
+
 
     mov     R4, #8
 _t1:

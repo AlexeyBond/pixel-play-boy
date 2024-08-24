@@ -207,7 +207,7 @@
 0029: 05 6F            inc     _test_note
 002B: 53 6F 7F         anl     _test_note, #0b01111111
 002E: A8 6F            mov     R0, _test_note
-0030: 12 02 0E         lcall   setup_note
+0030: 12 02 A2         lcall   setup_note
                    
 0033: D0 83            pop     DPH
 0035: D0 82            pop     DPL
@@ -222,7 +222,7 @@
 0067: C0 82            push    DPL
 0069: C0 83            push    DPH
                    
-006B: 12 01 D8         lcall display_coro_run
+006B: 12 02 2F         lcall display_coro_run
                    
 006E: D0 83            pop     DPH
 0070: D0 82            pop     DPL
@@ -246,7 +246,7 @@
                                            ; (upper 128 bytes of 256 bytes).
                    
                    ; Beeper init
-007A: 12 02 06         lcall   mute_sound
+007A: 12 02 9A         lcall   mute_sound
                    
                    ; Tempo counter init
 007D: 85 14 8D         mov     TH1, 0x14
@@ -263,14 +263,18 @@
 0091: 75 92 FF         mov     P1M0, #0xFF
 0094: 75 96 FF         mov     P2M0, #0xFF
 0097: 75 B4 FF         mov     P4M0, #0xFF
-009A: 12 01 E2         lcall display_coro_start    ; start display coroutine
-009D: 75 D6 00         mov     T2H, #0             ; start display timer (T2)
+009A: 12 02 39         lcall display_coro_start    ; start display coroutine
+009D: 75 D6 FB         mov     T2H, #0xFB          ; start display timer (T2)
 00A0: 75 D7 00         mov     T2L, #0
 00A3: 43 8E 10         orl     AUXR, #AUXR_T2R
 00A6: 43 AF 04         orl     IE2, #IE2_ET2
                    
-00A9: D2 AF            setb    EA          ; Enable interrupts
-00AB: 80 FE            sjmp    *
+00A9: 75 7A 3F         mov     ss_value_0, #SS_CHR_O_UP
+00AC: 75 7B 1C         mov     ss_value_1, #SS_CHR_U_LOW
+00AF: 75 7C 3F         mov     ss_value_2, #SS_CHR_O_UP
+                   
+00B2: D2 AF            setb    EA          ; Enable interrupts
+00B4: 80 FE            sjmp    *
                    
                    
                    
@@ -288,249 +292,323 @@
                    ; UB if A >= 16
                    ; Uses A, DPTR
                    display_row_on:
-00AD: 90 00 B3         mov     DPTR, #display_row_on_tab
-00B0: 23               rl      A
-00B1: 23               rl      A
-00B2: 73               jmp     @A + DPTR   ; jmp display_row_on_tab + row * 4
+00B6: 90 00 BC         mov     DPTR, #display_row_on_tab
+00B9: 23               rl      A
+00BA: 23               rl      A
+00BB: 73               jmp     @A + DPTR   ; jmp display_row_on_tab + row * 4
                    display_row_on_tab:
-00B3: D2 A6            setb    DISPLAY_R0
-00B5: 22               ret
+00BC: D2 A6            setb    DISPLAY_R0
+00BE: 22               ret
                    ; print('\n'.join(f".org display_row_on_tab + (4 * {i})\n   
-00B7:              .org display_row_on_tab + (4 * 1)
-00B7: D2 C5            setb DISPLAY_R1
-00B9: 22               ret
-00BB:              .org display_row_on_tab + (4 * 2)
-00BB: D2 84            setb DISPLAY_R2
-00BD: 22               ret
-00BF:              .org display_row_on_tab + (4 * 3)
-00BF: D2 A7            setb DISPLAY_R3
-00C1: 22               ret
-00C3:              .org display_row_on_tab + (4 * 4)
-00C3: D2 80            setb DISPLAY_R4
-00C5: 22               ret
-00C7:              .org display_row_on_tab + (4 * 5)
-00C7: D2 83            setb DISPLAY_R5
-00C9: 22               ret
-00CB:              .org display_row_on_tab + (4 * 6)
-00CB: D2 81            setb DISPLAY_R6
-00CD: 22               ret
-00CF:              .org display_row_on_tab + (4 * 7)
-00CF: D2 82            setb DISPLAY_R7
-00D1: 22               ret
-00D3:              .org display_row_on_tab + (4 * 8)
-00D3: D2 85            setb DISPLAY_R8
-00D5: 22               ret
-00D7:              .org display_row_on_tab + (4 * 9)
-00D7: D2 87            setb DISPLAY_R9
-00D9: 22               ret
-00DB:              .org display_row_on_tab + (4 * 10)
-00DB: D2 93            setb DISPLAY_R10
-00DD: 22               ret
-00DF:              .org display_row_on_tab + (4 * 11)
-00DF: D2 86            setb DISPLAY_R11
-00E1: 22               ret
-00E3:              .org display_row_on_tab + (4 * 12)
-00E3: D2 90            setb DISPLAY_R12
-00E5: 22               ret
-00E7:              .org display_row_on_tab + (4 * 13)
-00E7: D2 92            setb DISPLAY_R13
-00E9: 22               ret
-00EB:              .org display_row_on_tab + (4 * 14)
-00EB: D2 91            setb DISPLAY_R14
-00ED: 22               ret
-00EF:              .org display_row_on_tab + (4 * 15)
-00EF: D2 96            setb DISPLAY_R15
-00F1: 22               ret
+00C0:              .org display_row_on_tab + (4 * 1)
+00C0: D2 C5            setb DISPLAY_R1
+00C2: 22               ret
+00C4:              .org display_row_on_tab + (4 * 2)
+00C4: D2 84            setb DISPLAY_R2
+00C6: 22               ret
+00C8:              .org display_row_on_tab + (4 * 3)
+00C8: D2 A7            setb DISPLAY_R3
+00CA: 22               ret
+00CC:              .org display_row_on_tab + (4 * 4)
+00CC: D2 80            setb DISPLAY_R4
+00CE: 22               ret
+00D0:              .org display_row_on_tab + (4 * 5)
+00D0: D2 83            setb DISPLAY_R5
+00D2: 22               ret
+00D4:              .org display_row_on_tab + (4 * 6)
+00D4: D2 81            setb DISPLAY_R6
+00D6: 22               ret
+00D8:              .org display_row_on_tab + (4 * 7)
+00D8: D2 82            setb DISPLAY_R7
+00DA: 22               ret
+00DC:              .org display_row_on_tab + (4 * 8)
+00DC: D2 85            setb DISPLAY_R8
+00DE: 22               ret
+00E0:              .org display_row_on_tab + (4 * 9)
+00E0: D2 87            setb DISPLAY_R9
+00E2: 22               ret
+00E4:              .org display_row_on_tab + (4 * 10)
+00E4: D2 93            setb DISPLAY_R10
+00E6: 22               ret
+00E8:              .org display_row_on_tab + (4 * 11)
+00E8: D2 86            setb DISPLAY_R11
+00EA: 22               ret
+00EC:              .org display_row_on_tab + (4 * 12)
+00EC: D2 90            setb DISPLAY_R12
+00EE: 22               ret
+00F0:              .org display_row_on_tab + (4 * 13)
+00F0: D2 92            setb DISPLAY_R13
+00F2: 22               ret
+00F4:              .org display_row_on_tab + (4 * 14)
+00F4: D2 91            setb DISPLAY_R14
+00F6: 22               ret
+00F8:              .org display_row_on_tab + (4 * 15)
+00F8: D2 96            setb DISPLAY_R15
+00FA: 22               ret
                    
                    ; Disable display row determined by A
                    ; UB if A >= 16
                    ; Uses A, DPTR
                    display_row_off:
-00F2: 90 00 F8         mov     DPTR, #display_row_off_tab
-00F5: 23               rl      A
-00F6: 23               rl      A
-00F7: 73               jmp     @A + DPTR   ; jmp display_row_off_tab + row * 4
+00FB: 90 01 01         mov     DPTR, #display_row_off_tab
+00FE: 23               rl      A
+00FF: 23               rl      A
+0100: 73               jmp     @A + DPTR   ; jmp display_row_off_tab + row * 4
                    display_row_off_tab:
-00F8: C2 A6            clr     DISPLAY_R0
-00FA: 22               ret
+0101: C2 A6            clr     DISPLAY_R0
+0103: 22               ret
                    ; print('\n'.join(f".org display_row_off_tab + (4 * {i})\n  
-00FC:              .org display_row_off_tab + (4 * 1)
-00FC: C2 C5            clr DISPLAY_R1
-00FE: 22               ret
-0100:              .org display_row_off_tab + (4 * 2)
-0100: C2 84            clr DISPLAY_R2
-0102: 22               ret
-0104:              .org display_row_off_tab + (4 * 3)
-0104: C2 A7            clr DISPLAY_R3
-0106: 22               ret
-0108:              .org display_row_off_tab + (4 * 4)
-0108: C2 80            clr DISPLAY_R4
-010A: 22               ret
-010C:              .org display_row_off_tab + (4 * 5)
-010C: C2 83            clr DISPLAY_R5
-010E: 22               ret
-0110:              .org display_row_off_tab + (4 * 6)
-0110: C2 81            clr DISPLAY_R6
-0112: 22               ret
-0114:              .org display_row_off_tab + (4 * 7)
-0114: C2 82            clr DISPLAY_R7
-0116: 22               ret
-0118:              .org display_row_off_tab + (4 * 8)
-0118: C2 85            clr DISPLAY_R8
-011A: 22               ret
-011C:              .org display_row_off_tab + (4 * 9)
-011C: C2 87            clr DISPLAY_R9
-011E: 22               ret
-0120:              .org display_row_off_tab + (4 * 10)
-0120: C2 93            clr DISPLAY_R10
-0122: 22               ret
-0124:              .org display_row_off_tab + (4 * 11)
-0124: C2 86            clr DISPLAY_R11
-0126: 22               ret
-0128:              .org display_row_off_tab + (4 * 12)
-0128: C2 90            clr DISPLAY_R12
-012A: 22               ret
-012C:              .org display_row_off_tab + (4 * 13)
-012C: C2 92            clr DISPLAY_R13
-012E: 22               ret
-0130:              .org display_row_off_tab + (4 * 14)
-0130: C2 91            clr DISPLAY_R14
-0132: 22               ret
-0134:              .org display_row_off_tab + (4 * 15)
-0134: C2 96            clr DISPLAY_R15
-0136: 22               ret
+0105:              .org display_row_off_tab + (4 * 1)
+0105: C2 C5            clr DISPLAY_R1
+0107: 22               ret
+0109:              .org display_row_off_tab + (4 * 2)
+0109: C2 84            clr DISPLAY_R2
+010B: 22               ret
+010D:              .org display_row_off_tab + (4 * 3)
+010D: C2 A7            clr DISPLAY_R3
+010F: 22               ret
+0111:              .org display_row_off_tab + (4 * 4)
+0111: C2 80            clr DISPLAY_R4
+0113: 22               ret
+0115:              .org display_row_off_tab + (4 * 5)
+0115: C2 83            clr DISPLAY_R5
+0117: 22               ret
+0119:              .org display_row_off_tab + (4 * 6)
+0119: C2 81            clr DISPLAY_R6
+011B: 22               ret
+011D:              .org display_row_off_tab + (4 * 7)
+011D: C2 82            clr DISPLAY_R7
+011F: 22               ret
+0121:              .org display_row_off_tab + (4 * 8)
+0121: C2 85            clr DISPLAY_R8
+0123: 22               ret
+0125:              .org display_row_off_tab + (4 * 9)
+0125: C2 87            clr DISPLAY_R9
+0127: 22               ret
+0129:              .org display_row_off_tab + (4 * 10)
+0129: C2 93            clr DISPLAY_R10
+012B: 22               ret
+012D:              .org display_row_off_tab + (4 * 11)
+012D: C2 86            clr DISPLAY_R11
+012F: 22               ret
+0131:              .org display_row_off_tab + (4 * 12)
+0131: C2 90            clr DISPLAY_R12
+0133: 22               ret
+0135:              .org display_row_off_tab + (4 * 13)
+0135: C2 92            clr DISPLAY_R13
+0137: 22               ret
+0139:              .org display_row_off_tab + (4 * 14)
+0139: C2 91            clr DISPLAY_R14
+013B: 22               ret
+013D:              .org display_row_off_tab + (4 * 15)
+013D: C2 96            clr DISPLAY_R15
+013F: 22               ret
                    
                    ; Enable column determined by A
                    ; UB if A >= 8
                    ; Uses A, DPTR
                    display_col_on:
-0137: 90 01 3D         mov     DPTR, #display_col_on_tab
-013A: 23               rl      A
-013B: 23               rl      A
-013C: 73               jmp     @A + DPTR
+0140: 90 01 46         mov     DPTR, #display_col_on_tab
+0143: 23               rl      A
+0144: 23               rl      A
+0145: 73               jmp     @A + DPTR
                    display_col_on_tab:
-013D: C2 95            clr     DISPLAY_C0              ; Columns are negative
-013F: 22               ret
+0146: C2 95            clr     DISPLAY_C0              ; Columns are negative
+0148: 22               ret
                    ; print('\n'.join(f".org display_col_on_tab + (4 * {i})\n   
-0141:              .org display_col_on_tab + (4 * 1)
-0141: C2 C1            clr DISPLAY_C1
-0143: 22               ret
-0145:              .org display_col_on_tab + (4 * 2)
-0145: C2 A2            clr DISPLAY_C2
-0147: 22               ret
-0149:              .org display_col_on_tab + (4 * 3)
-0149: C2 94            clr DISPLAY_C3
-014B: 22               ret
-014D:              .org display_col_on_tab + (4 * 4)
-014D: C2 A1            clr DISPLAY_C4
-014F: 22               ret
-0151:              .org display_col_on_tab + (4 * 5)
-0151: C2 C4            clr DISPLAY_C5
-0153: 22               ret
-0155:              .org display_col_on_tab + (4 * 6)
-0155: C2 A0            clr DISPLAY_C6
-0157: 22               ret
-0159:              .org display_col_on_tab + (4 * 7)
-0159: C2 A4            clr DISPLAY_C7
-015B: 22               ret
+014A:              .org display_col_on_tab + (4 * 1)
+014A: C2 C1            clr DISPLAY_C1
+014C: 22               ret
+014E:              .org display_col_on_tab + (4 * 2)
+014E: C2 A2            clr DISPLAY_C2
+0150: 22               ret
+0152:              .org display_col_on_tab + (4 * 3)
+0152: C2 94            clr DISPLAY_C3
+0154: 22               ret
+0156:              .org display_col_on_tab + (4 * 4)
+0156: C2 A1            clr DISPLAY_C4
+0158: 22               ret
+015A:              .org display_col_on_tab + (4 * 5)
+015A: C2 C4            clr DISPLAY_C5
+015C: 22               ret
+015E:              .org display_col_on_tab + (4 * 6)
+015E: C2 A0            clr DISPLAY_C6
+0160: 22               ret
+0162:              .org display_col_on_tab + (4 * 7)
+0162: C2 A4            clr DISPLAY_C7
+0164: 22               ret
                    
                    display_col_off:
-015C: 90 01 62         mov     DPTR, #display_col_off_tab
-015F: 23               rl      A
-0160: 23               rl      A
-0161: 73               jmp     @A + DPTR
+0165: 90 01 6B         mov     DPTR, #display_col_off_tab
+0168: 23               rl      A
+0169: 23               rl      A
+016A: 73               jmp     @A + DPTR
                    display_col_off_tab:
-0162: D2 95            setb    DISPLAY_C0              ; Columns are negative
-0164: 22               ret
+016B: D2 95            setb    DISPLAY_C0              ; Columns are negative
+016D: 22               ret
                    ; print('\n'.join(f".org display_col_off_tab + (4 * {i})\n  
-0166:              .org display_col_off_tab + (4 * 1)
-0166: D2 C1            setb DISPLAY_C1
-0168: 22               ret
-016A:              .org display_col_off_tab + (4 * 2)
-016A: D2 A2            setb DISPLAY_C2
-016C: 22               ret
-016E:              .org display_col_off_tab + (4 * 3)
-016E: D2 94            setb DISPLAY_C3
-0170: 22               ret
-0172:              .org display_col_off_tab + (4 * 4)
-0172: D2 A1            setb DISPLAY_C4
-0174: 22               ret
-0176:              .org display_col_off_tab + (4 * 5)
-0176: D2 C4            setb DISPLAY_C5
-0178: 22               ret
-017A:              .org display_col_off_tab + (4 * 6)
-017A: D2 A0            setb DISPLAY_C6
-017C: 22               ret
-017E:              .org display_col_off_tab + (4 * 7)
-017E: D2 A4            setb DISPLAY_C7
-0180: 22               ret
+016F:              .org display_col_off_tab + (4 * 1)
+016F: D2 C1            setb DISPLAY_C1
+0171: 22               ret
+0173:              .org display_col_off_tab + (4 * 2)
+0173: D2 A2            setb DISPLAY_C2
+0175: 22               ret
+0177:              .org display_col_off_tab + (4 * 3)
+0177: D2 94            setb DISPLAY_C3
+0179: 22               ret
+017B:              .org display_col_off_tab + (4 * 4)
+017B: D2 A1            setb DISPLAY_C4
+017D: 22               ret
+017F:              .org display_col_off_tab + (4 * 5)
+017F: D2 C4            setb DISPLAY_C5
+0181: 22               ret
+0183:              .org display_col_off_tab + (4 * 6)
+0183: D2 A0            setb DISPLAY_C6
+0185: 22               ret
+0187:              .org display_col_off_tab + (4 * 7)
+0187: D2 A4            setb DISPLAY_C7
+0189: 22               ret
                    
                    ; Disable all columns
                    display_col_off_all:
-0181: D2 95            setb    DISPLAY_C0
-0183: D2 C1            setb    DISPLAY_C1
-0185: D2 A2            setb    DISPLAY_C2
-0187: D2 94            setb    DISPLAY_C3
-0189: D2 A1            setb    DISPLAY_C4
-018B: D2 C4            setb    DISPLAY_C5
-018D: D2 A0            setb    DISPLAY_C6
-018F: D2 A4            setb    DISPLAY_C7
-0191: 22               ret
+018A: D2 95            setb    DISPLAY_C0
+018C: D2 C1            setb    DISPLAY_C1
+018E: D2 A2            setb    DISPLAY_C2
+0190: D2 94            setb    DISPLAY_C3
+0192: D2 A1            setb    DISPLAY_C4
+0194: D2 C4            setb    DISPLAY_C5
+0196: D2 A0            setb    DISPLAY_C6
+0198: D2 A4            setb    DISPLAY_C7
+019A: 22               ret
                    
                    ; Disable all rows
                    display_row_off_all:
-0192: C2 A6            clr     DISPLAY_R0
-0194: C2 C5            clr     DISPLAY_R1
-0196: C2 84            clr     DISPLAY_R2
-0198: C2 A7            clr     DISPLAY_R3
-019A: C2 80            clr     DISPLAY_R4
-019C: C2 83            clr     DISPLAY_R5
-019E: C2 81            clr     DISPLAY_R6
-01A0: C2 82            clr     DISPLAY_R7
-01A2: C2 85            clr     DISPLAY_R8
-01A4: C2 87            clr     DISPLAY_R9
-01A6: C2 93            clr     DISPLAY_R10
-01A8: C2 86            clr     DISPLAY_R11
-01AA: C2 90            clr     DISPLAY_R12
-01AC: C2 92            clr     DISPLAY_R13
-01AE: C2 91            clr     DISPLAY_R14
-01B0: C2 96            clr     DISPLAY_R15
-01B2: 22               ret
+019B: C2 A6            clr     DISPLAY_R0
+019D: C2 C5            clr     DISPLAY_R1
+019F: C2 84            clr     DISPLAY_R2
+01A1: C2 A7            clr     DISPLAY_R3
+01A3: C2 80            clr     DISPLAY_R4
+01A5: C2 83            clr     DISPLAY_R5
+01A7: C2 81            clr     DISPLAY_R6
+01A9: C2 82            clr     DISPLAY_R7
+01AB: C2 85            clr     DISPLAY_R8
+01AD: C2 87            clr     DISPLAY_R9
+01AF: C2 93            clr     DISPLAY_R10
+01B1: C2 86            clr     DISPLAY_R11
+01B3: C2 90            clr     DISPLAY_R12
+01B5: C2 92            clr     DISPLAY_R13
+01B7: C2 91            clr     DISPLAY_R14
+01B9: C2 96            clr     DISPLAY_R15
+01BB: 22               ret
                    
                    ; Enable a segment of 7-segment display determined by A
                    ; UB if A >= 8
                    ; Uses A, DPTR
                    display_ss_segment_on:
-01B3: 90 01 B9         mov     DPTR, #display_ss_segment_on_tab
-01B6: 23               rl      A
-01B7: 23               rl      A
-01B8: 73               jmp     @A + DPTR
+01BC: 90 01 C2         mov     DPTR, #display_ss_segment_on_tab
+01BF: 23               rl      A
+01C0: 23               rl      A
+01C1: 73               jmp     @A + DPTR
                    display_ss_segment_on_tab:
                    ; print('\n'.join(f".org display_ss_segment_on_tab + (4 * SS
-01B9:              .org display_ss_segment_on_tab + (4 * SS_SEGN_A)
-01B9: D2 C1            setb SMG_A
-01BB: 22               ret
-01BD:              .org display_ss_segment_on_tab + (4 * SS_SEGN_B)
-01BD: D2 A4            setb SMG_B
-01BF: 22               ret
-01C1:              .org display_ss_segment_on_tab + (4 * SS_SEGN_C)
-01C1: D2 A1            setb SMG_C
-01C3: 22               ret
-01C5:              .org display_ss_segment_on_tab + (4 * SS_SEGN_D)
-01C5: D2 A0            setb SMG_D
-01C7: 22               ret
-01C9:              .org display_ss_segment_on_tab + (4 * SS_SEGN_E)
-01C9: D2 C4            setb SMG_E
-01CB: 22               ret
-01CD:              .org display_ss_segment_on_tab + (4 * SS_SEGN_F)
-01CD: D2 A2            setb SMG_F
-01CF: 22               ret
-01D1:              .org display_ss_segment_on_tab + (4 * SS_SEGN_G)
-01D1: D2 94            setb SMG_G
-01D3: 22               ret
-01D5:              .org display_ss_segment_on_tab + (4 * SS_SEGN_DP)
-01D5: D2 95            setb SMG_DP
-01D7: 22               ret
+01C2:              .org display_ss_segment_on_tab + (4 * SS_SEGN_A)
+01C2: D2 C1            setb SMG_A
+01C4: 22               ret
+01C6:              .org display_ss_segment_on_tab + (4 * SS_SEGN_B)
+01C6: D2 A4            setb SMG_B
+01C8: 22               ret
+01CA:              .org display_ss_segment_on_tab + (4 * SS_SEGN_C)
+01CA: D2 A1            setb SMG_C
+01CC: 22               ret
+01CE:              .org display_ss_segment_on_tab + (4 * SS_SEGN_D)
+01CE: D2 A0            setb SMG_D
+01D0: 22               ret
+01D2:              .org display_ss_segment_on_tab + (4 * SS_SEGN_E)
+01D2: D2 C4            setb SMG_E
+01D4: 22               ret
+01D6:              .org display_ss_segment_on_tab + (4 * SS_SEGN_F)
+01D6: D2 A2            setb SMG_F
+01D8: 22               ret
+01DA:              .org display_ss_segment_on_tab + (4 * SS_SEGN_G)
+01DA: D2 94            setb SMG_G
+01DC: 22               ret
+01DE:              .org display_ss_segment_on_tab + (4 * SS_SEGN_DP)
+01DE: D2 95            setb SMG_DP
+01E0: 22               ret
+                   
+                   ; Disable a segment of 7-segment display determined by A
+                   ; UB if A >= 8
+                   ; Uses A, DPTR
+                   display_ss_segment_off:
+01E1: 90 01 E7         mov     DPTR, #display_ss_segment_off_tab
+01E4: 23               rl      A
+01E5: 23               rl      A
+01E6: 73               jmp     @A + DPTR
+                   display_ss_segment_off_tab:
+                   ; print('\n'.join(f".org display_ss_segment_off_tab + (4 * S
+01E7:              .org display_ss_segment_off_tab + (4 * SS_SEGN_A)
+01E7: C2 C1            clr SMG_A
+01E9: 22               ret
+01EB:              .org display_ss_segment_off_tab + (4 * SS_SEGN_B)
+01EB: C2 A4            clr SMG_B
+01ED: 22               ret
+01EF:              .org display_ss_segment_off_tab + (4 * SS_SEGN_C)
+01EF: C2 A1            clr SMG_C
+01F1: 22               ret
+01F3:              .org display_ss_segment_off_tab + (4 * SS_SEGN_D)
+01F3: C2 A0            clr SMG_D
+01F5: 22               ret
+01F7:              .org display_ss_segment_off_tab + (4 * SS_SEGN_E)
+01F7: C2 C4            clr SMG_E
+01F9: 22               ret
+01FB:              .org display_ss_segment_off_tab + (4 * SS_SEGN_F)
+01FB: C2 A2            clr SMG_F
+01FD: 22               ret
+01FF:              .org display_ss_segment_off_tab + (4 * SS_SEGN_G)
+01FF: C2 94            clr SMG_G
+0201: 22               ret
+0203:              .org display_ss_segment_off_tab + (4 * SS_SEGN_DP)
+0203: C2 95            clr SMG_DP
+0205: 22               ret
+                   
+                   ; Disable all 7-segment display segments
+                   display_ss_segment_off_all:
+0206: C2 C1            clr SMG_A
+0208: C2 A4            clr SMG_B
+020A: C2 A1            clr SMG_C
+020C: C2 A0            clr SMG_D
+020E: C2 C4            clr SMG_E
+0210: C2 A2            clr SMG_F
+0212: C2 94            clr SMG_G
+0214: C2 95            clr SMG_DP
+0216: 22               ret
+                   
+                   ; Disable all 7-segment display digits
+                   display_ss_digit_off_all:
+0217: D2 A3            setb    DISPLAY_D0
+0219: D2 A5            setb    DISPLAY_D1
+021B: D2 C2            setb    DISPLAY_D2
+021D: 22               ret
+                   
+                   ; Enable a 7-segment digit determined by A
+                   ; UB if A >= 3
+                   ; Uses A, DPTR
+                   display_ss_digit_on:
+021E: 90 02 24         mov     DPTR, #display_ss_digit_on_tab
+0221: 23               rl      A
+0222: 23               rl      A
+0223: 73               jmp     @A + DPTR
+                   display_ss_digit_on_tab:
+                   ; print('\n'.join(f".org display_ss_digit_on_tab + (4 * {i})
+0224:              .org display_ss_digit_on_tab + (4 * 0)
+0224: C2 A3            clr DISPLAY_D0
+0226: 22               ret
+0228:              .org display_ss_digit_on_tab + (4 * 1)
+0228: C2 A5            clr DISPLAY_D1
+022A: 22               ret
+022C:              .org display_ss_digit_on_tab + (4 * 2)
+022C: C2 C2            clr DISPLAY_D2
+022E: 22               ret
                    
                    
                    ;
@@ -539,45 +617,87 @@
                    
                    ; Run one step of display coroutine
                    display_coro_run:
-01D8: C0 7D            push    display_coro_pcl
-01DA: C0 7E            push    display_coro_pch
-01DC: 22               ret
+022F: C0 7D            push    display_coro_pcl
+0231: C0 7E            push    display_coro_pch
+0233: 22               ret
                    
                    ; End a step of display coroutine
                    ; MUST be called directly from display coroutine only
                    display_coro_yield:
-01DD: D0 7E            pop     display_coro_pch
-01DF: D0 7D            pop     display_coro_pcl
-01E1: 22               ret
+0234: D0 7E            pop     display_coro_pch
+0236: D0 7D            pop     display_coro_pcl
+0238: 22               ret
                    
                    ; Display coroutine start
                    ; Calling this will initialize display coroutine and return
                    display_coro_start:
-01E2: 31 92            acall   display_row_off_all
+0239: 31 9B            acall   display_row_off_all
                    
-01E4: 31 DD            acall   display_coro_yield
+023B: 51 34            acall   display_coro_yield
                    display_coro_loop:
-01E6: 31 81            acall display_col_off_all
                    
-01E8: 7C 08            mov     R4, #8
+                   ; 7-segment display
+023D: 12 02 17         lcall   display_ss_digit_off_all
+0240: 12 02 06         lcall   display_ss_segment_off_all
+0243: 75 79 00         mov     display_var_a, #0           ; var_a = digit inde
+                   _display_coro_ss_digits_loop:
+0246: E5 79            mov     A, display_var_a
+0248: 12 02 1E         lcall   display_ss_digit_on
+024B: 74 7A            mov     A, #ss_value_0
+024D: 25 79            add     A, display_var_a
+024F: F8               mov     R0, A
+0250: 86 78            mov     display_var_b, @R0          ; var_b = segment bi
+                   
+0252: 75 77 00         mov     display_var_c, #0           ; var_c = segment in
+                   _display_coro_ss_segments_loop:
+0255: E5 78            mov     A, display_var_b
+0257: 13               rrc     A
+0258: F5 78            mov     display_var_b, A
+025A: 50 05            jnc     _display_coro_ss_segment_off
+025C: E5 77            mov     A, display_var_c
+025E: 12 01 BC         lcall   display_ss_segment_on
+                   _display_coro_ss_segment_off:
+0261: 12 02 34         lcall   display_coro_yield
+                   
+0264: E5 77            mov     A, display_var_c
+0266: 12 01 E1         lcall   display_ss_segment_off
+                   
+0269: 05 77            inc     display_var_c
+026B: E5 77            mov     A, display_var_c
+026D: B4 08 E5         cjne    A, #8, _display_coro_ss_segments_loop
+                   
+0270: 12 02 17         lcall   display_ss_digit_off_all
+0273: 05 79            inc     display_var_a
+0275: E5 79            mov     A, display_var_a
+0277: B4 03 CC         cjne    A, #3, _display_coro_ss_digits_loop
+                   
+                   
+                   ; Matrix display
+                   
+                   
+027A: 31 8A            acall display_col_off_all
+                   
+                   
+                   
+027C: 7C 08            mov     R4, #8
                    _t1:
-01EA: 1C               dec R4
-01EB: EC               mov A, R4
-01EC: 23               rl A
-01ED: 12 00 AD         lcall display_row_on
-01F0: EC               mov A, R4
-01F1: 12 01 37         lcall display_col_on
-01F4: 12 01 DD         lcall   display_coro_yield
-01F7: EC               mov A, R4
-01F8: 23               rl A
-01F9: 12 00 F2         lcall display_row_off
-01FC: EC               mov A, R4
-01FD: 12 01 5C         lcall display_col_off
-0200: BC 00 E7         cjne R4, #0, _t1
+027E: 1C               dec R4
+027F: EC               mov A, R4
+0280: 23               rl A
+0281: 12 00 B6         lcall display_row_on
+0284: EC               mov A, R4
+0285: 12 01 40         lcall display_col_on
+0288: 12 02 34         lcall   display_coro_yield
+028B: EC               mov A, R4
+028C: 23               rl A
+028D: 12 00 FB         lcall display_row_off
+0290: EC               mov A, R4
+0291: 12 01 65         lcall display_col_off
+0294: BC 00 E7         cjne R4, #0, _t1
                    
                        
                    
-0203: 02 01 E6         ljmp    display_coro_loop
+0297: 02 02 3D         ljmp    display_coro_loop
                    
                    
                    
@@ -590,325 +710,325 @@
                    
                    ; Stop playing any sound
                    mute_sound:
-0206: C2 8C            clr     TR0
-0208: 53 8F FE         anl     INT_CLKO, #(0xFF - INT_CLKO_T0CLKO)     ; use be
-020B: D2 B5            setb    BEEPER                                  ; pull b
-020D: 22               ret
+029A: C2 8C            clr     TR0
+029C: 53 8F FE         anl     INT_CLKO, #(0xFF - INT_CLKO_T0CLKO)     ; use be
+029F: D2 B5            setb    BEEPER                                  ; pull b
+02A1: 22               ret
                    
                    
                    ; Setup T0 to play note determined by R0.
                    ; UB if R0 > 127
                    ; Uses A, DPTR
                    setup_note:
-020E: 90 02 2C         mov     DPTR, #notes_table_th
-0211: E8               mov     A, R0
-0212: 93               movc    A, @A+DPTR
-0213: F5 8C            mov     TH0, A
+02A2: 90 02 C0         mov     DPTR, #notes_table_th
+02A5: E8               mov     A, R0
+02A6: 93               movc    A, @A+DPTR
+02A7: F5 8C            mov     TH0, A
                    
-0215: 90 02 AC         mov     DPTR, #notes_table_tl
-0218: E8               mov     A, R0
-0219: 93               movc    A, @A+DPTR
-021A: F5 8A            mov     TL0, A
+02A9: 90 03 40         mov     DPTR, #notes_table_tl
+02AC: E8               mov     A, R0
+02AD: 93               movc    A, @A+DPTR
+02AE: F5 8A            mov     TL0, A
                    
-021C: 43 8F 01         orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle
+02B0: 43 8F 01         orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle
                        ;setb    TR0
                    
-021F: B8 2B 04         cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
+02B3: B8 2B 04         cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
                    setup_note_need_x12:
-0222: 43 8E 80         orl     AUXR, #AUXR_T0x12
-0225: 22               ret
+02B6: 43 8E 80         orl     AUXR, #AUXR_T0x12
+02B9: 22               ret
                    setup_note_ne:
-0226: 50 FA            jnc     setup_note_need_x12  ; if R0 > #FIRST_X12_NOTE_I
-0228: 53 8E 7F         anl     AUXR, #(0xFF - AUXR_T0x12)
-022B: 22               ret
+02BA: 50 FA            jnc     setup_note_need_x12  ; if R0 > #FIRST_X12_NOTE_I
+02BC: 53 8E 7F         anl     AUXR, #(0xFF - AUXR_T0x12)
+02BF: 22               ret
                    
                    
                    
                    ; Note tables
                    ; 1) T2H for each note
                    notes_table_th:
-022C: 02               .db 0x2         ; Cs0
-022D: 10               .db 0x10        ; D0
-022E: 1E               .db 0x1e        ; Ds0
-022F: 2A               .db 0x2a        ; E0
-0230: 36               .db 0x36        ; F0
-0231: 41               .db 0x41        ; Fs0
-0232: 4C               .db 0x4c        ; G0
-0233: 56               .db 0x56        ; Gs0
-0234: 60               .db 0x60        ; A0
-0235: 69               .db 0x69        ; As0
-0236: 71               .db 0x71        ; B0
-0237: 79               .db 0x79        ; C1
-0238: 81               .db 0x81        ; Cs1
-0239: 88               .db 0x88        ; D1
-023A: 8F               .db 0x8f        ; Ds1
-023B: 95               .db 0x95        ; E1
-023C: 9B               .db 0x9b        ; F1
-023D: A0               .db 0xa0        ; Fs1
-023E: A6               .db 0xa6        ; G1
-023F: AB               .db 0xab        ; Gs1
-0240: B0               .db 0xb0        ; A1
-0241: B4               .db 0xb4        ; As1
-0242: B8               .db 0xb8        ; B1
-0243: BC               .db 0xbc        ; C2
-0244: C0               .db 0xc0        ; Cs2
-0245: C4               .db 0xc4        ; D2
-0246: C7               .db 0xc7        ; Ds2
-0247: CA               .db 0xca        ; E2
-0248: CD               .db 0xcd        ; F2
-0249: D0               .db 0xd0        ; Fs2
-024A: D3               .db 0xd3        ; G2
-024B: D5               .db 0xd5        ; Gs2
-024C: D8               .db 0xd8        ; A2
-024D: DA               .db 0xda        ; As2
-024E: DC               .db 0xdc        ; B2
-024F: DE               .db 0xde        ; C3
-0250: E0               .db 0xe0        ; Cs3
-0251: E2               .db 0xe2        ; D3
-0252: E3               .db 0xe3        ; Ds3
-0253: E5               .db 0xe5        ; E3
-0254: E6               .db 0xe6        ; F3
-0255: E8               .db 0xe8        ; Fs3
-0256: E9               .db 0xe9        ; G3
-0257: 02               .db 0x2         ; Gs3
-0258: 10               .db 0x10        ; A3
-0259: 1D               .db 0x1d        ; As3
-025A: 2A               .db 0x2a        ; B3
-025B: 36               .db 0x36        ; C4
-025C: 41               .db 0x41        ; Cs4
-025D: 4C               .db 0x4c        ; D4
-025E: 56               .db 0x56        ; Ds4
-025F: 60               .db 0x60        ; E4
-0260: 68               .db 0x68        ; F4
-0261: 71               .db 0x71        ; Fs4
-0262: 79               .db 0x79        ; G4
-0263: 81               .db 0x81        ; Gs4
-0264: 88               .db 0x88        ; A4
-0265: 8E               .db 0x8e        ; As4
-0266: 95               .db 0x95        ; B4
-0267: 9B               .db 0x9b        ; C5
-0268: A0               .db 0xa0        ; Cs5
-0269: A6               .db 0xa6        ; D5
-026A: AB               .db 0xab        ; Ds5
-026B: B0               .db 0xb0        ; E5
-026C: B4               .db 0xb4        ; F5
-026D: B8               .db 0xb8        ; Fs5
-026E: BC               .db 0xbc        ; G5
-026F: C0               .db 0xc0        ; Gs5
-0270: C4               .db 0xc4        ; A5
-0271: C7               .db 0xc7        ; As5
-0272: CA               .db 0xca        ; B5
-0273: CD               .db 0xcd        ; C6
-0274: D0               .db 0xd0        ; Cs6
-0275: D3               .db 0xd3        ; D6
-0276: D5               .db 0xd5        ; Ds6
-0277: D8               .db 0xd8        ; E6
-0278: DA               .db 0xda        ; F6
-0279: DC               .db 0xdc        ; Fs6
-027A: DE               .db 0xde        ; G6
-027B: E0               .db 0xe0        ; Gs6
-027C: E2               .db 0xe2        ; A6
-027D: E3               .db 0xe3        ; As6
-027E: E5               .db 0xe5        ; B6
-027F: E6               .db 0xe6        ; C7
-0280: E8               .db 0xe8        ; Cs7
-0281: E9               .db 0xe9        ; D7
-0282: EA               .db 0xea        ; Ds7
-0283: EC               .db 0xec        ; E7
-0284: ED               .db 0xed        ; F7
-0285: EE               .db 0xee        ; Fs7
-0286: EF               .db 0xef        ; G7
-0287: F0               .db 0xf0        ; Gs7
-0288: F1               .db 0xf1        ; A7
-0289: F1               .db 0xf1        ; As7
-028A: F2               .db 0xf2        ; B7
-028B: F3               .db 0xf3        ; C8
-028C: F4               .db 0xf4        ; Cs8
-028D: F4               .db 0xf4        ; D8
-028E: F5               .db 0xf5        ; Ds8
-028F: F6               .db 0xf6        ; E8
-0290: F6               .db 0xf6        ; F8
-0291: F7               .db 0xf7        ; Fs8
-0292: F7               .db 0xf7        ; G8
-0293: F8               .db 0xf8        ; Gs8
-0294: F8               .db 0xf8        ; A8
-0295: F8               .db 0xf8        ; As8
-0296: F9               .db 0xf9        ; B8
-0297: F9               .db 0xf9        ; C9
-0298: FA               .db 0xfa        ; Cs9
-0299: FA               .db 0xfa        ; D9
-029A: FA               .db 0xfa        ; Ds9
-029B: FB               .db 0xfb        ; E9
-029C: FB               .db 0xfb        ; F9
-029D: FB               .db 0xfb        ; Fs9
-029E: FB               .db 0xfb        ; G9
-029F: FC               .db 0xfc        ; Gs9
-02A0: FC               .db 0xfc        ; A9
-02A1: FC               .db 0xfc        ; As9
-02A2: FC               .db 0xfc        ; B9
-02A3: FC               .db 0xfc        ; C10
-02A4: FD               .db 0xfd        ; Cs10
-02A5: FD               .db 0xfd        ; D10
-02A6: FD               .db 0xfd        ; Ds10
-02A7: FD               .db 0xfd        ; E10
-02A8: FD               .db 0xfd        ; F10
-02A9: FD               .db 0xfd        ; Fs10
-02AA: FD               .db 0xfd        ; G10
-02AB: FE               .db 0xfe        ; Gs10
+02C0: 02               .db 0x2         ; Cs0
+02C1: 10               .db 0x10        ; D0
+02C2: 1E               .db 0x1e        ; Ds0
+02C3: 2A               .db 0x2a        ; E0
+02C4: 36               .db 0x36        ; F0
+02C5: 41               .db 0x41        ; Fs0
+02C6: 4C               .db 0x4c        ; G0
+02C7: 56               .db 0x56        ; Gs0
+02C8: 60               .db 0x60        ; A0
+02C9: 69               .db 0x69        ; As0
+02CA: 71               .db 0x71        ; B0
+02CB: 79               .db 0x79        ; C1
+02CC: 81               .db 0x81        ; Cs1
+02CD: 88               .db 0x88        ; D1
+02CE: 8F               .db 0x8f        ; Ds1
+02CF: 95               .db 0x95        ; E1
+02D0: 9B               .db 0x9b        ; F1
+02D1: A0               .db 0xa0        ; Fs1
+02D2: A6               .db 0xa6        ; G1
+02D3: AB               .db 0xab        ; Gs1
+02D4: B0               .db 0xb0        ; A1
+02D5: B4               .db 0xb4        ; As1
+02D6: B8               .db 0xb8        ; B1
+02D7: BC               .db 0xbc        ; C2
+02D8: C0               .db 0xc0        ; Cs2
+02D9: C4               .db 0xc4        ; D2
+02DA: C7               .db 0xc7        ; Ds2
+02DB: CA               .db 0xca        ; E2
+02DC: CD               .db 0xcd        ; F2
+02DD: D0               .db 0xd0        ; Fs2
+02DE: D3               .db 0xd3        ; G2
+02DF: D5               .db 0xd5        ; Gs2
+02E0: D8               .db 0xd8        ; A2
+02E1: DA               .db 0xda        ; As2
+02E2: DC               .db 0xdc        ; B2
+02E3: DE               .db 0xde        ; C3
+02E4: E0               .db 0xe0        ; Cs3
+02E5: E2               .db 0xe2        ; D3
+02E6: E3               .db 0xe3        ; Ds3
+02E7: E5               .db 0xe5        ; E3
+02E8: E6               .db 0xe6        ; F3
+02E9: E8               .db 0xe8        ; Fs3
+02EA: E9               .db 0xe9        ; G3
+02EB: 02               .db 0x2         ; Gs3
+02EC: 10               .db 0x10        ; A3
+02ED: 1D               .db 0x1d        ; As3
+02EE: 2A               .db 0x2a        ; B3
+02EF: 36               .db 0x36        ; C4
+02F0: 41               .db 0x41        ; Cs4
+02F1: 4C               .db 0x4c        ; D4
+02F2: 56               .db 0x56        ; Ds4
+02F3: 60               .db 0x60        ; E4
+02F4: 68               .db 0x68        ; F4
+02F5: 71               .db 0x71        ; Fs4
+02F6: 79               .db 0x79        ; G4
+02F7: 81               .db 0x81        ; Gs4
+02F8: 88               .db 0x88        ; A4
+02F9: 8E               .db 0x8e        ; As4
+02FA: 95               .db 0x95        ; B4
+02FB: 9B               .db 0x9b        ; C5
+02FC: A0               .db 0xa0        ; Cs5
+02FD: A6               .db 0xa6        ; D5
+02FE: AB               .db 0xab        ; Ds5
+02FF: B0               .db 0xb0        ; E5
+0300: B4               .db 0xb4        ; F5
+0301: B8               .db 0xb8        ; Fs5
+0302: BC               .db 0xbc        ; G5
+0303: C0               .db 0xc0        ; Gs5
+0304: C4               .db 0xc4        ; A5
+0305: C7               .db 0xc7        ; As5
+0306: CA               .db 0xca        ; B5
+0307: CD               .db 0xcd        ; C6
+0308: D0               .db 0xd0        ; Cs6
+0309: D3               .db 0xd3        ; D6
+030A: D5               .db 0xd5        ; Ds6
+030B: D8               .db 0xd8        ; E6
+030C: DA               .db 0xda        ; F6
+030D: DC               .db 0xdc        ; Fs6
+030E: DE               .db 0xde        ; G6
+030F: E0               .db 0xe0        ; Gs6
+0310: E2               .db 0xe2        ; A6
+0311: E3               .db 0xe3        ; As6
+0312: E5               .db 0xe5        ; B6
+0313: E6               .db 0xe6        ; C7
+0314: E8               .db 0xe8        ; Cs7
+0315: E9               .db 0xe9        ; D7
+0316: EA               .db 0xea        ; Ds7
+0317: EC               .db 0xec        ; E7
+0318: ED               .db 0xed        ; F7
+0319: EE               .db 0xee        ; Fs7
+031A: EF               .db 0xef        ; G7
+031B: F0               .db 0xf0        ; Gs7
+031C: F1               .db 0xf1        ; A7
+031D: F1               .db 0xf1        ; As7
+031E: F2               .db 0xf2        ; B7
+031F: F3               .db 0xf3        ; C8
+0320: F4               .db 0xf4        ; Cs8
+0321: F4               .db 0xf4        ; D8
+0322: F5               .db 0xf5        ; Ds8
+0323: F6               .db 0xf6        ; E8
+0324: F6               .db 0xf6        ; F8
+0325: F7               .db 0xf7        ; Fs8
+0326: F7               .db 0xf7        ; G8
+0327: F8               .db 0xf8        ; Gs8
+0328: F8               .db 0xf8        ; A8
+0329: F8               .db 0xf8        ; As8
+032A: F9               .db 0xf9        ; B8
+032B: F9               .db 0xf9        ; C9
+032C: FA               .db 0xfa        ; Cs9
+032D: FA               .db 0xfa        ; D9
+032E: FA               .db 0xfa        ; Ds9
+032F: FB               .db 0xfb        ; E9
+0330: FB               .db 0xfb        ; F9
+0331: FB               .db 0xfb        ; Fs9
+0332: FB               .db 0xfb        ; G9
+0333: FC               .db 0xfc        ; Gs9
+0334: FC               .db 0xfc        ; A9
+0335: FC               .db 0xfc        ; As9
+0336: FC               .db 0xfc        ; B9
+0337: FC               .db 0xfc        ; C10
+0338: FD               .db 0xfd        ; Cs10
+0339: FD               .db 0xfd        ; D10
+033A: FD               .db 0xfd        ; Ds10
+033B: FD               .db 0xfd        ; E10
+033C: FD               .db 0xfd        ; F10
+033D: FD               .db 0xfd        ; Fs10
+033E: FD               .db 0xfd        ; G10
+033F: FE               .db 0xfe        ; Gs10
                    ; 2) T2L for each note
                    notes_table_tl:
-02AC: 55               .db 0x55        ; Cs0
-02AD: 92               .db 0x92        ; D0
-02AE: 02               .db 0x2         ; Ds0
-02AF: B1               .db 0xb1        ; E0
-02B0: AA               .db 0xaa        ; F0
-02B1: F7               .db 0xf7        ; Fs0
-02B2: A1               .db 0xa1        ; G0
-02B3: B2               .db 0xb2        ; Gs0
-02B4: 33               .db 0x33        ; A0
-02B5: 2B               .db 0x2b        ; As0
-02B6: A2               .db 0xa2        ; B0
-02B7: A0               .db 0xa0        ; C1
-02B8: 2A               .db 0x2a        ; Cs1
-02B9: 49               .db 0x49        ; D1
-02BA: 01               .db 0x1         ; Ds1
-02BB: 58               .db 0x58        ; E1
-02BC: 55               .db 0x55        ; F1
-02BD: FB               .db 0xfb        ; Fs1
-02BE: 51               .db 0x51        ; G1
-02BF: 59               .db 0x59        ; Gs1
-02C0: 19               .db 0x19        ; A1
-02C1: 95               .db 0x95        ; As1
-02C2: D1               .db 0xd1        ; B1
-02C3: D0               .db 0xd0        ; C2
-02C4: 95               .db 0x95        ; Cs2
-02C5: 24               .db 0x24        ; D2
-02C6: 80               .db 0x80        ; Ds2
-02C7: AC               .db 0xac        ; E2
-02C8: AA               .db 0xaa        ; F2
-02C9: 7E               .db 0x7e        ; Fs2
-02CA: 28               .db 0x28        ; G2
-02CB: AD               .db 0xad        ; Gs2
-02CC: 0D               .db 0xd         ; A2
-02CD: 4B               .db 0x4b        ; As2
-02CE: 69               .db 0x69        ; B2
-02CF: 68               .db 0x68        ; C3
-02D0: 4B               .db 0x4b        ; Cs3
-02D1: 12               .db 0x12        ; D3
-02D2: C0               .db 0xc0        ; Ds3
-02D3: 56               .db 0x56        ; E3
-02D4: D5               .db 0xd5        ; F3
-02D5: 3F               .db 0x3f        ; Fs3
-02D6: 94               .db 0x94        ; G3
-02D7: 0B               .db 0xb         ; Gs3
-02D8: 4C               .db 0x4c        ; A3
-02D9: C0               .db 0xc0        ; As3
-02DA: 73               .db 0x73        ; B3
-02DB: 70               .db 0x70        ; C4
-02DC: C0               .db 0xc0        ; Cs4
-02DD: 6D               .db 0x6d        ; D4
-02DE: 81               .db 0x81        ; Ds4
-02DF: 05               .db 0x5         ; E4
-02E0: FF               .db 0xff        ; F4
-02E1: 79               .db 0x79        ; Fs4
-02E2: 79               .db 0x79        ; G4
-02E3: 06               .db 0x6         ; Gs4
-02E4: 26               .db 0x26        ; A4
-02E5: E0               .db 0xe0        ; As4
-02E6: 3A               .db 0x3a        ; B4
-02E7: 38               .db 0x38        ; C5
-02E8: E0               .db 0xe0        ; Cs5
-02E9: 37               .db 0x37        ; D5
-02EA: 41               .db 0x41        ; Ds5
-02EB: 02               .db 0x2         ; E5
-02EC: 80               .db 0x80        ; F5
-02ED: BC               .db 0xbc        ; Fs5
-02EE: BC               .db 0xbc        ; G5
-02EF: 83               .db 0x83        ; Gs5
-02F0: 13               .db 0x13        ; A5
-02F1: 70               .db 0x70        ; As5
-02F2: 9D               .db 0x9d        ; B5
-02F3: 9C               .db 0x9c        ; C6
-02F4: 70               .db 0x70        ; Cs6
-02F5: 1B               .db 0x1b        ; D6
-02F6: A0               .db 0xa0        ; Ds6
-02F7: 01               .db 0x1         ; E6
-02F8: 40               .db 0x40        ; F6
-02F9: 5E               .db 0x5e        ; Fs6
-02FA: 5E               .db 0x5e        ; G6
-02FB: 41               .db 0x41        ; Gs6
-02FC: 0A               .db 0xa         ; A6
-02FD: B8               .db 0xb8        ; As6
-02FE: 4E               .db 0x4e        ; B6
-02FF: CE               .db 0xce        ; C7
-0300: 38               .db 0x38        ; Cs7
-0301: 8E               .db 0x8e        ; D7
-0302: D0               .db 0xd0        ; Ds7
-0303: 01               .db 0x1         ; E7
-0304: 20               .db 0x20        ; F7
-0305: 2F               .db 0x2f        ; Fs7
-0306: 2F               .db 0x2f        ; G7
-0307: 21               .db 0x21        ; Gs7
-0308: 05               .db 0x5         ; A7
-0309: DC               .db 0xdc        ; As7
-030A: A7               .db 0xa7        ; B7
-030B: 67               .db 0x67        ; C8
-030C: 1C               .db 0x1c        ; Cs8
-030D: C7               .db 0xc7        ; D8
-030E: 68               .db 0x68        ; Ds8
-030F: 00               .db 0x0         ; E8
-0310: 90               .db 0x90        ; F8
-0311: 18               .db 0x18        ; Fs8
-0312: 98               .db 0x98        ; G8
-0313: 10               .db 0x10        ; Gs8
-0314: 82               .db 0x82        ; A8
-0315: EE               .db 0xee        ; As8
-0316: 54               .db 0x54        ; B8
-0317: B3               .db 0xb3        ; C9
-0318: 0E               .db 0xe         ; Cs9
-0319: 63               .db 0x63        ; D9
-031A: B4               .db 0xb4        ; Ds9
-031B: 00               .db 0x0         ; E9
-031C: 48               .db 0x48        ; F9
-031D: 8C               .db 0x8c        ; Fs9
-031E: CC               .db 0xcc        ; G9
-031F: 08               .db 0x8         ; Gs9
-0320: 41               .db 0x41        ; A9
-0321: 77               .db 0x77        ; As9
-0322: AA               .db 0xaa        ; B9
-0323: DA               .db 0xda        ; C10
-0324: 07               .db 0x7         ; Cs10
-0325: 32               .db 0x32        ; D10
-0326: 5A               .db 0x5a        ; Ds10
-0327: 80               .db 0x80        ; E10
-0328: A4               .db 0xa4        ; F10
-0329: C6               .db 0xc6        ; Fs10
-032A: E6               .db 0xe6        ; G10
-032B: 04               .db 0x4         ; Gs10
+0340: 55               .db 0x55        ; Cs0
+0341: 92               .db 0x92        ; D0
+0342: 02               .db 0x2         ; Ds0
+0343: B1               .db 0xb1        ; E0
+0344: AA               .db 0xaa        ; F0
+0345: F7               .db 0xf7        ; Fs0
+0346: A1               .db 0xa1        ; G0
+0347: B2               .db 0xb2        ; Gs0
+0348: 33               .db 0x33        ; A0
+0349: 2B               .db 0x2b        ; As0
+034A: A2               .db 0xa2        ; B0
+034B: A0               .db 0xa0        ; C1
+034C: 2A               .db 0x2a        ; Cs1
+034D: 49               .db 0x49        ; D1
+034E: 01               .db 0x1         ; Ds1
+034F: 58               .db 0x58        ; E1
+0350: 55               .db 0x55        ; F1
+0351: FB               .db 0xfb        ; Fs1
+0352: 51               .db 0x51        ; G1
+0353: 59               .db 0x59        ; Gs1
+0354: 19               .db 0x19        ; A1
+0355: 95               .db 0x95        ; As1
+0356: D1               .db 0xd1        ; B1
+0357: D0               .db 0xd0        ; C2
+0358: 95               .db 0x95        ; Cs2
+0359: 24               .db 0x24        ; D2
+035A: 80               .db 0x80        ; Ds2
+035B: AC               .db 0xac        ; E2
+035C: AA               .db 0xaa        ; F2
+035D: 7E               .db 0x7e        ; Fs2
+035E: 28               .db 0x28        ; G2
+035F: AD               .db 0xad        ; Gs2
+0360: 0D               .db 0xd         ; A2
+0361: 4B               .db 0x4b        ; As2
+0362: 69               .db 0x69        ; B2
+0363: 68               .db 0x68        ; C3
+0364: 4B               .db 0x4b        ; Cs3
+0365: 12               .db 0x12        ; D3
+0366: C0               .db 0xc0        ; Ds3
+0367: 56               .db 0x56        ; E3
+0368: D5               .db 0xd5        ; F3
+0369: 3F               .db 0x3f        ; Fs3
+036A: 94               .db 0x94        ; G3
+036B: 0B               .db 0xb         ; Gs3
+036C: 4C               .db 0x4c        ; A3
+036D: C0               .db 0xc0        ; As3
+036E: 73               .db 0x73        ; B3
+036F: 70               .db 0x70        ; C4
+0370: C0               .db 0xc0        ; Cs4
+0371: 6D               .db 0x6d        ; D4
+0372: 81               .db 0x81        ; Ds4
+0373: 05               .db 0x5         ; E4
+0374: FF               .db 0xff        ; F4
+0375: 79               .db 0x79        ; Fs4
+0376: 79               .db 0x79        ; G4
+0377: 06               .db 0x6         ; Gs4
+0378: 26               .db 0x26        ; A4
+0379: E0               .db 0xe0        ; As4
+037A: 3A               .db 0x3a        ; B4
+037B: 38               .db 0x38        ; C5
+037C: E0               .db 0xe0        ; Cs5
+037D: 37               .db 0x37        ; D5
+037E: 41               .db 0x41        ; Ds5
+037F: 02               .db 0x2         ; E5
+0380: 80               .db 0x80        ; F5
+0381: BC               .db 0xbc        ; Fs5
+0382: BC               .db 0xbc        ; G5
+0383: 83               .db 0x83        ; Gs5
+0384: 13               .db 0x13        ; A5
+0385: 70               .db 0x70        ; As5
+0386: 9D               .db 0x9d        ; B5
+0387: 9C               .db 0x9c        ; C6
+0388: 70               .db 0x70        ; Cs6
+0389: 1B               .db 0x1b        ; D6
+038A: A0               .db 0xa0        ; Ds6
+038B: 01               .db 0x1         ; E6
+038C: 40               .db 0x40        ; F6
+038D: 5E               .db 0x5e        ; Fs6
+038E: 5E               .db 0x5e        ; G6
+038F: 41               .db 0x41        ; Gs6
+0390: 0A               .db 0xa         ; A6
+0391: B8               .db 0xb8        ; As6
+0392: 4E               .db 0x4e        ; B6
+0393: CE               .db 0xce        ; C7
+0394: 38               .db 0x38        ; Cs7
+0395: 8E               .db 0x8e        ; D7
+0396: D0               .db 0xd0        ; Ds7
+0397: 01               .db 0x1         ; E7
+0398: 20               .db 0x20        ; F7
+0399: 2F               .db 0x2f        ; Fs7
+039A: 2F               .db 0x2f        ; G7
+039B: 21               .db 0x21        ; Gs7
+039C: 05               .db 0x5         ; A7
+039D: DC               .db 0xdc        ; As7
+039E: A7               .db 0xa7        ; B7
+039F: 67               .db 0x67        ; C8
+03A0: 1C               .db 0x1c        ; Cs8
+03A1: C7               .db 0xc7        ; D8
+03A2: 68               .db 0x68        ; Ds8
+03A3: 00               .db 0x0         ; E8
+03A4: 90               .db 0x90        ; F8
+03A5: 18               .db 0x18        ; Fs8
+03A6: 98               .db 0x98        ; G8
+03A7: 10               .db 0x10        ; Gs8
+03A8: 82               .db 0x82        ; A8
+03A9: EE               .db 0xee        ; As8
+03AA: 54               .db 0x54        ; B8
+03AB: B3               .db 0xb3        ; C9
+03AC: 0E               .db 0xe         ; Cs9
+03AD: 63               .db 0x63        ; D9
+03AE: B4               .db 0xb4        ; Ds9
+03AF: 00               .db 0x0         ; E9
+03B0: 48               .db 0x48        ; F9
+03B1: 8C               .db 0x8c        ; Fs9
+03B2: CC               .db 0xcc        ; G9
+03B3: 08               .db 0x8         ; Gs9
+03B4: 41               .db 0x41        ; A9
+03B5: 77               .db 0x77        ; As9
+03B6: AA               .db 0xaa        ; B9
+03B7: DA               .db 0xda        ; C10
+03B8: 07               .db 0x7         ; Cs10
+03B9: 32               .db 0x32        ; D10
+03BA: 5A               .db 0x5a        ; Ds10
+03BB: 80               .db 0x80        ; E10
+03BC: A4               .db 0xa4        ; F10
+03BD: C6               .db 0xc6        ; Fs10
+03BE: E6               .db 0xe6        ; G10
+03BF: 04               .db 0x4         ; Gs10
                    ; Index of first note that does need full system frequency
-032C:              .equ    FIRST_X12_NOTE_ID, 43
+03C0:              .equ    FIRST_X12_NOTE_ID, 43
                    ; Tempo tables
                    ; 1) TH per tempo
                    tempo_table_th:
-032C: 14               .db 0x14        ; 20 bpm
-032D: 32               .db 0x32        ; 40 bpm
-032E: 48               .db 0x48        ; 60 bpm
-032F: 32               .db 0x32        ; 80 bpm
-0330: 76               .db 0x76        ; 120 bpm
-0331: 14               .db 0x14        ; 140 bpm
+03C0: 14               .db 0x14        ; 20 bpm
+03C1: 32               .db 0x32        ; 40 bpm
+03C2: 48               .db 0x48        ; 60 bpm
+03C3: 32               .db 0x32        ; 80 bpm
+03C4: 76               .db 0x76        ; 120 bpm
+03C5: 14               .db 0x14        ; 140 bpm
                    ; 2) TL per tempo
                    tempo_table_tl:
-0332: 95               .db 0x95        ; 20 bpm
-0333: 02               .db 0x2         ; 40 bpm
-0334: E5               .db 0xe5        ; 60 bpm
-0335: 02               .db 0x2         ; 80 bpm
-0336: AC               .db 0xac        ; 120 bpm
-0337: 95               .db 0x95        ; 140 bpm
+03C6: 95               .db 0x95        ; 20 bpm
+03C7: 02               .db 0x2         ; 40 bpm
+03C8: E5               .db 0xe5        ; 60 bpm
+03C9: 02               .db 0x2         ; 80 bpm
+03CA: AC               .db 0xac        ; 120 bpm
+03CB: 95               .db 0x95        ; 140 bpm
                    ; 3) Software divider per tempo
                    tempo_table_sd:
-0338: 07               .db 0x7         ; 20 bpm
-0339: 04               .db 0x4         ; 40 bpm
-033A: 03               .db 0x3         ; 60 bpm
-033B: 02               .db 0x2         ; 80 bpm
-033C: 02               .db 0x2         ; 120 bpm
-033D: 01               .db 0x1         ; 140 bpm
+03CC: 07               .db 0x7         ; 20 bpm
+03CD: 04               .db 0x4         ; 40 bpm
+03CE: 03               .db 0x3         ; 60 bpm
+03CF: 02               .db 0x2         ; 80 bpm
+03D0: 02               .db 0x2         ; 120 bpm
+03D1: 01               .db 0x1         ; 140 bpm
