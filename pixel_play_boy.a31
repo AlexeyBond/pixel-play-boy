@@ -143,6 +143,8 @@
 .equ    SS_CHR_8, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
 .equ    SS_CHR_9, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_F | SS_SEGB_G
 
+.equ    SS_CHR_MINUS, SS_SEGB_G
+
 .equ    SS_CHR_A, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_F | SS_SEGB_G
 .equ    SS_CHR_B, SS_SEGB_C | SS_SEGB_D | SS_SEGB_F | SS_SEGB_G
 .equ    SS_CHR_C_UP, SS_SEGB_A | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F
@@ -163,6 +165,8 @@
 
 .equ    stack_bottom, 0x7f                      ; Stack takes the top half of internal RAM
 
+; Variables
+
 .equ    tempo_tick, stack_bottom                ; Tempo tick counter
 
 .equ    display_coro_pch, tempo_tick - 1        ; Display co-routine program counter
@@ -181,8 +185,14 @@
                                                 ; Outside of [0;15] range if not editing note
 .equ    display_blink_cnt, seq_edit_cursor - 1  ; Cursor blinking counter
 
-.equ    btns_denoise_buffer, display_blink_cnt - 4  ; 
+.equ    btns_denoise_buffer, display_blink_cnt - 4  ; A buffer for button jitter filtering
 
+.equ    anim_counter, btns_denoise_buffer - 1   ; Animation frames counter
+.equ    anim_ptr, anim_counter - 1
+
+
+
+; Bit-addressable variables
 
 .equ    aux_bits, 0x2F                          ; Highest bit-addressable register
 
@@ -217,8 +227,8 @@
 ;    cpl     BEEPER
 ;    reti
 
-.org 0x001B             ; Timer 1 interrupt - triggered on every 1/16 note
-    djnz    tempo_tick, t1i_ret ; if (--tempo_tick) goto t1i_ret
+.org 0x001B             ; Timer 1 interrupt - triggered on every 1/16 note - switch note, update animation
+    djnz    tempo_tick, _t1i_no_next_note   ; if (--tempo_tick) goto _t1i_no_next_note
 
     push    ACC
     push    0
@@ -227,21 +237,24 @@
 
     mov     tempo_tick, #7
 
-
     mov     A, seq_cursor
     inc     A
     anl     A, #0x0f
     mov     seq_cursor, A
+
+    lcall   animation_frame
+
     lcall   setup_current_note
+
 
     pop     DPH
     pop     DPL
     pop     0
     pop     ACC
-t1i_ret:
+_t1i_no_next_note:
     reti
 
-.org 0x0063             ; Timer 2 interrupt - update display
+.org 0x0063             ; Timer 2 interrupt - update display, check input
     push    ACC
     push    0
     push    DPL
@@ -288,9 +301,7 @@ main:
     orl     AUXR, #AUXR_T2R
     orl     IE2, #IE2_ET2
 
-    mov     ss_value_0, #SS_CHR_O_UP
-    mov     ss_value_1, #SS_CHR_U_LOW
-    mov     ss_value_2, #SS_CHR_O_UP
+    lcall   animation_init
 
 ; Sequence setup
     mov     (seq_notes + 0), #1
@@ -869,8 +880,56 @@ _display_note_end:
 
 
 ; End of display coroutine loop
-    lcall    display_coro_loop
+    ljmp    display_coro_loop
 
+
+
+;
+; Animation (on 7-segment display)
+;
+
+
+animation_init:
+    mov     anim_ptr, #0
+    sjmp    _animation_update_1
+
+animation_frame:
+    mov     A, seq_cursor
+    cjne    A, #0, _animation_update    ; Restart animation at start of the bar
+    sjmp    animation_init
+
+_animation_update:
+    djnz    anim_counter, _anim_no_change
+_animation_update_1:
+
+    mov     DPTR, #animation_data
+    mov     R0, anim_ptr
+    mov     A, R0
+    movc    A, @A + DPTR
+    mov     anim_counter, A
+    inc     R0
+    mov     A, R0
+    movc    A, @A + DPTR
+    mov     ss_value_0, A
+    inc     R0
+    mov     A, R0
+    movc    A, @A + DPTR
+    mov     ss_value_1, A
+    inc     R0
+    mov     A, R0
+    movc    A, @A + DPTR
+    mov     ss_value_2, A
+    inc     R0
+    mov     anim_ptr, R0
+
+
+_anim_no_change:
+    ret
+
+animation_data:
+    .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
+    .db 1, SS_CHR_MINUS, SS_CHR_U_LOW, SS_CHR_MINUS ; -u-
+    .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; 0u0
 
 ;
 ; Sound control routines
@@ -890,7 +949,7 @@ setup_current_note:
 _setup_current_note_nonzero:
     dec     A
 
-    add     A, #36 ; TODO: Adjust to scale
+    add     A, #48 ; TODO: Adjust to scale
 
     mov     R0, A
     sjmp    setup_note
@@ -919,7 +978,7 @@ setup_note:
     mov     TL0, A
 
     orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle beeper pin on T0 overflow
-    setb    TR0
+    ;setb    TR0
 
     cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
 setup_note_need_x12:
