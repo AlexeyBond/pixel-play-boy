@@ -181,6 +181,8 @@
                                                 ; Outside of [0;15] range if not editing note
 .equ    display_blink_cnt, seq_edit_cursor - 1  ; Cursor blinking counter
 
+.equ    btns_denoise_buffer, display_blink_cnt - 4  ; 
+
 
 .equ    aux_bits, 0x2F                          ; Highest bit-addressable register
 
@@ -722,7 +724,16 @@ _input_check_no_right:
     jb      BTN_LEFT, _input_check_no_left
     setb    ACC.4
 _input_check_no_left:
-    mov     R0, A                           ; R0 = pressed
+    mov     R0, A                           ; R0 = pressed_now
+    orl     A, btns_denoise_buffer + 3
+    orl     A, btns_denoise_buffer + 2
+    orl     A, btns_denoise_buffer + 1
+    orl     A, btns_denoise_buffer + 0
+    mov     btns_denoise_buffer + 3, btns_denoise_buffer + 2
+    mov     btns_denoise_buffer + 2, btns_denoise_buffer + 1
+    mov     btns_denoise_buffer + 1, btns_denoise_buffer + 0
+    mov     btns_denoise_buffer + 0, R0
+    mov     R0, A                           ; R0 = A = pressed_filtered
     mov     A, btns_pressed
     cpl     A
     anl     A, R0                           ; A = pressed & ~btns_pressed
