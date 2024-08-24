@@ -82,14 +82,14 @@
 0000:              .flag DISPLAY_R15,      P1.6
                    
                    ; Display columns
-0000:              .flag DISPLAY_C0,       P1.5
-0000:              .flag DISPLAY_C1,       P4.1
-0000:              .flag DISPLAY_C2,       P2.2
-0000:              .flag DISPLAY_C3,       P1.4
-0000:              .flag DISPLAY_C4,       P2.1
-0000:              .flag DISPLAY_C5,       P4.4
-0000:              .flag DISPLAY_C6,       P2.0
-0000:              .flag DISPLAY_C7,       P2.4
+0000:              .flag DISPLAY_C0,       P2.4
+0000:              .flag DISPLAY_C1,       P2.0
+0000:              .flag DISPLAY_C2,       P4.4
+0000:              .flag DISPLAY_C3,       P2.1
+0000:              .flag DISPLAY_C4,       P1.4
+0000:              .flag DISPLAY_C5,       P2.2
+0000:              .flag DISPLAY_C6,       P4.1
+0000:              .flag DISPLAY_C7,       P1.5
                    
                    ; Display digits
 0000:              .flag DISPLAY_D0,       P2.3
@@ -437,29 +437,29 @@
 0177: 23               rl      A
 0178: 73               jmp     @A + DPTR
                    display_col_on_tab:
-0179: C2 95            clr     DISPLAY_C0              ; Columns are negative
+0179: C2 A4            clr     DISPLAY_C0              ; Columns are negative
 017B: 22               ret
                    ; print('\n'.join(f".org display_col_on_tab + (4 * {i})\n   
 017D:              .org display_col_on_tab + (4 * 1)
-017D: C2 C1            clr DISPLAY_C1
+017D: C2 A0            clr DISPLAY_C1
 017F: 22               ret
 0181:              .org display_col_on_tab + (4 * 2)
-0181: C2 A2            clr DISPLAY_C2
+0181: C2 C4            clr DISPLAY_C2
 0183: 22               ret
 0185:              .org display_col_on_tab + (4 * 3)
-0185: C2 94            clr DISPLAY_C3
+0185: C2 A1            clr DISPLAY_C3
 0187: 22               ret
 0189:              .org display_col_on_tab + (4 * 4)
-0189: C2 A1            clr DISPLAY_C4
+0189: C2 94            clr DISPLAY_C4
 018B: 22               ret
 018D:              .org display_col_on_tab + (4 * 5)
-018D: C2 C4            clr DISPLAY_C5
+018D: C2 A2            clr DISPLAY_C5
 018F: 22               ret
 0191:              .org display_col_on_tab + (4 * 6)
-0191: C2 A0            clr DISPLAY_C6
+0191: C2 C1            clr DISPLAY_C6
 0193: 22               ret
 0195:              .org display_col_on_tab + (4 * 7)
-0195: C2 A4            clr DISPLAY_C7
+0195: C2 95            clr DISPLAY_C7
 0197: 22               ret
                    
                    display_col_off:
@@ -468,41 +468,41 @@
 019C: 23               rl      A
 019D: 73               jmp     @A + DPTR
                    display_col_off_tab:
-019E: D2 95            setb    DISPLAY_C0              ; Columns are negative
+019E: D2 A4            setb    DISPLAY_C0              ; Columns are negative
 01A0: 22               ret
                    ; print('\n'.join(f".org display_col_off_tab + (4 * {i})\n  
 01A2:              .org display_col_off_tab + (4 * 1)
-01A2: D2 C1            setb DISPLAY_C1
+01A2: D2 A0            setb DISPLAY_C1
 01A4: 22               ret
 01A6:              .org display_col_off_tab + (4 * 2)
-01A6: D2 A2            setb DISPLAY_C2
+01A6: D2 C4            setb DISPLAY_C2
 01A8: 22               ret
 01AA:              .org display_col_off_tab + (4 * 3)
-01AA: D2 94            setb DISPLAY_C3
+01AA: D2 A1            setb DISPLAY_C3
 01AC: 22               ret
 01AE:              .org display_col_off_tab + (4 * 4)
-01AE: D2 A1            setb DISPLAY_C4
+01AE: D2 94            setb DISPLAY_C4
 01B0: 22               ret
 01B2:              .org display_col_off_tab + (4 * 5)
-01B2: D2 C4            setb DISPLAY_C5
+01B2: D2 A2            setb DISPLAY_C5
 01B4: 22               ret
 01B6:              .org display_col_off_tab + (4 * 6)
-01B6: D2 A0            setb DISPLAY_C6
+01B6: D2 C1            setb DISPLAY_C6
 01B8: 22               ret
 01BA:              .org display_col_off_tab + (4 * 7)
-01BA: D2 A4            setb DISPLAY_C7
+01BA: D2 95            setb DISPLAY_C7
 01BC: 22               ret
                    
                    ; Disable all columns
                    display_col_off_all:
-01BD: D2 95            setb    DISPLAY_C0
-01BF: D2 C1            setb    DISPLAY_C1
-01C1: D2 A2            setb    DISPLAY_C2
-01C3: D2 94            setb    DISPLAY_C3
-01C5: D2 A1            setb    DISPLAY_C4
-01C7: D2 C4            setb    DISPLAY_C5
-01C9: D2 A0            setb    DISPLAY_C6
-01CB: D2 A4            setb    DISPLAY_C7
+01BD: D2 A4            setb    DISPLAY_C0
+01BF: D2 A0            setb    DISPLAY_C1
+01C1: D2 C4            setb    DISPLAY_C2
+01C3: D2 A1            setb    DISPLAY_C3
+01C5: D2 94            setb    DISPLAY_C4
+01C7: D2 A2            setb    DISPLAY_C5
+01C9: D2 C1            setb    DISPLAY_C6
+01CB: D2 95            setb    DISPLAY_C7
 01CD: 22               ret
                    
                    ; Disable all rows
@@ -734,7 +734,7 @@
                    
                    ; Playback cursor
                    
-02CC: C2 A4            clr     DISPLAY_C7
+02CC: C2 95            clr     DISPLAY_C7
 02CE: E5 69            mov     A, seq_cursor
 02D0: 54 0F            anl     A, #0x0f
 02D2: FD               mov     R5, A
@@ -742,7 +742,7 @@
 02D6: 12 02 67         lcall   display_coro_yield
 02D9: ED               mov     A, R5
 02DA: 12 01 2E         lcall   display_row_off
-02DD: D2 A4            setb    DISPLAY_C7
+02DD: D2 95            setb    DISPLAY_C7
                    
                    
                    ; End of display coroutine loop

@@ -82,14 +82,14 @@
 .flag DISPLAY_R15,      P1.6
 
 ; Display columns
-.flag DISPLAY_C0,       P1.5
-.flag DISPLAY_C1,       P4.1
-.flag DISPLAY_C2,       P2.2
-.flag DISPLAY_C3,       P1.4
-.flag DISPLAY_C4,       P2.1
-.flag DISPLAY_C5,       P4.4
-.flag DISPLAY_C6,       P2.0
-.flag DISPLAY_C7,       P2.4
+.flag DISPLAY_C0,       P2.4
+.flag DISPLAY_C1,       P2.0
+.flag DISPLAY_C2,       P4.4
+.flag DISPLAY_C3,       P2.1
+.flag DISPLAY_C4,       P1.4
+.flag DISPLAY_C5,       P2.2
+.flag DISPLAY_C6,       P4.1
+.flag DISPLAY_C7,       P1.5
 
 ; Display digits
 .flag DISPLAY_D0,       P2.3
