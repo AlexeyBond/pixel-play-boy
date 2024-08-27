@@ -5,13 +5,16 @@ SYSTEM_CLOCK = 27_000_000
 A4_FREQ = 440
 RANGE = (-44, 84)
 
-BPMS = [20, 40, 60, 80, 120, 140]
+BPMS = [20, 33.3, 40, 60, 80, 120, 140]
+BPM_INITIAL = 80
 
 
 from sys import stderr
 from typing import NamedTuple
 
 assert len(range(*RANGE)) == 128
+
+assert BPM_INITIAL in BPMS
 
 NOTE_NAMES = ['A', 'As', 'B', 'C', 'Cs', 'D', 'Ds', 'E', 'F', 'Fs', 'G', 'Gs']
 MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11]
@@ -65,13 +68,6 @@ for note in notes:
 print("; Index of first note that does need full system frequency")
 print(f'.equ    FIRST_X12_NOTE_ID, {first_x12_note_id}')
 
-# print('; 3) AUXR for each note')
-# print('notes_table_auxr:')
-# print('    .db 0x00      ; Mute')
-
-# for note in notes:
-# 	print(f'    .db {hex((1 << 4) | (0 if note.div12 else (1 << 2)))}'.ljust(20), f'; {note.name}{note.octave}', sep='')
-
 
 print('; Tempo tables')
 
@@ -94,7 +90,27 @@ def calc_tempo_dividers(bpm) -> (int, int):
 
 	return divider_1, divider_2
 
+_CHR_TO_SS = {' ': '0', **{ str(x): f'SS_CHR_{x}' for x in range(10)}}
+
+def bpm_to_ss(bpm) -> (str, str, str):
+	bpm_str = str(bpm).rjust(3)
+	chr_lst = []
+
+	for c in bpm_str:
+		if c in _CHR_TO_SS:
+			chr_lst.append(_CHR_TO_SS[c])
+		elif c == '.':
+			chr_lst[-1] += ' | SS_SEGB_DP'
+		else:
+			assert False
+
+	assert len(chr_lst) == 3, f'Too long text ({chr_lst}) for bpm {bpm}'
+	print(f"BPM = {bpm} -> {chr_lst}", file=stderr)
+	return tuple(chr_lst)
+
 TEMPO_DIVIDERS = [calc_tempo_dividers(bpm) for bpm in BPMS]
+
+TEMPO_SS_TEXTS = [bpm_to_ss(bpm) for bpm in BPMS]
 
 print('; 1) TH per tempo')
 print('tempo_table_th:')
@@ -111,3 +127,17 @@ print('tempo_table_sd:')
 for ((sd, hd), bpm) in zip(TEMPO_DIVIDERS, BPMS):
 	print(f'    .db {hex(sd)}'.ljust(20), f'; {bpm} bpm', sep='')
 
+print(f'.equ tempo_initial_index, {BPMS.index(BPM_INITIAL)}')
+print(f'.equ tempo_max_index, {len(BPMS) - 1}')
+
+print('; 4.1) Seven-segment first character per tempo')
+print('tempo_table_ss_0:')
+print(f'    .db {", ".join(s[0] for s in TEMPO_SS_TEXTS)}')
+
+print('; 4.2) Seven-segment second character per tempo')
+print('tempo_table_ss_1:')
+print(f'    .db {", ".join(s[1] for s in TEMPO_SS_TEXTS)}')
+
+print('; 4.3) Seven-segment third character per tempo')
+print('tempo_table_ss_2:')
+print(f'    .db {", ".join(s[2] for s in TEMPO_SS_TEXTS)}')

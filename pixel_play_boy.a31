@@ -172,11 +172,11 @@
 .equ    display_coro_pch, tempo_tick - 1        ; Display co-routine program counter
 .equ    display_coro_pcl, display_coro_pch - 1
 
-.equ    ss_value_2, display_coro_pcl - 1        ; Characters to display on seven-segment display
-.equ    ss_value_1, ss_value_2 - 1
-.equ    ss_value_0, ss_value_1 - 1
+.equ    ss_anim_value_2, display_coro_pcl - 1   ; Characters to display on seven-segment display (in animation mode)
+.equ    ss_anim_value_1, ss_anim_value_2 - 1
+.equ    ss_anim_value_0, ss_anim_value_1 - 1
 
-.equ    seq_notes, ss_value_0 - 16              ; Current sequence of notes.
+.equ    seq_notes, ss_anim_value_0 - 16         ; Current sequence of notes.
                                                 ; 16 notes, one byte per note, [0;7] each,
                                                 ; where 0 is silence, 1..7 are pitches of current scale
 
@@ -190,6 +190,12 @@
 .equ    anim_counter, btns_denoise_buffer - 1   ; Animation frames counter
 .equ    anim_ptr, anim_counter - 1
 
+.equ    ss_menu_value_2, anim_ptr - 1           ; Characters to display on seven-segment display (in menu mode)
+.equ    ss_menu_value_1, ss_menu_value_2 - 1
+.equ    ss_menu_value_0, ss_menu_value_1 - 1
+
+.equ    tempo_index, ss_menu_value_0 - 1        ; Tempo index
+
 
 
 ; Bit-addressable variables
@@ -197,6 +203,7 @@
 .equ    aux_bits, 0x2F                          ; Highest bit-addressable register
 
 .flag   display_blink_on, aux_bits.0            ; If blinking element on display should be enabled
+.flag   display_ss_menu_mode, aux_bits.1        ; If true - SS display shows characters from ss_menu_value_* else from ss_anim_value_*
 
 .equ    btns_pressed, aux_bits - 1              ; Buttons currently pressed
 
@@ -235,7 +242,7 @@
     push    DPL
     push    DPH
 
-    mov     tempo_tick, #7
+    lcall   tempo_reset_soft_counter
 
     mov     A, seq_cursor
     inc     A
@@ -284,11 +291,7 @@ main:
     mov     SP, #stack_bottom
 
 ; Tempo counter init
-    mov     TH1, 0x14
-    mov     TL1, 0x95
-    orl     IE, #(1 << 3)
-    setb    TR1
-    mov     tempo_tick, #7
+    lcall   tempo_init
 
 ; Display setup
     mov     P0M0, #0xFF         ; set display pin modes to push-pull
@@ -331,14 +334,18 @@ main:
     
     sjmp    interaction_edit_notes
 
-
-
 interaction_edit_notes:
+    anl     seq_edit_cursor, #0x0F
+    clr     display_ss_menu_mode
+    clr     btn_just_pressed_ok
+
+interaction_edit_notes_loop:
     jb      btn_just_pressed_up, interaction_edit_notes_cursor_up
     jb      btn_just_pressed_down, interaction_edit_notes_cursor_down
     jb      btn_just_pressed_right, interaction_edit_notes_note_up
     jb      btn_just_pressed_left, interaction_edit_notes_note_down
-    sjmp    interaction_edit_notes
+    jb      btn_just_pressed_ok, interaction_edit_tempo
+    sjmp    interaction_edit_notes_loop
 
 interaction_edit_notes_cursor_up:
     clr     btn_just_pressed_up
@@ -377,6 +384,86 @@ interaction_edit_notes_note_down:
     anl     A, #0x07
     mov     @R0, A
     sjmp    interaction_edit_notes
+
+
+
+interaction_edit_tempo:
+    clr     btn_just_pressed_ok
+    setb    display_ss_menu_mode
+    orl     seq_edit_cursor, #0x10
+
+    mov     DPTR, #tempo_table_ss_0
+    mov     A, tempo_index
+    movc    A, @A + DPTR
+    mov     ss_menu_value_0, A
+
+    mov     DPTR, #tempo_table_ss_1
+    mov     A, tempo_index
+    movc    A, @A + DPTR
+    mov     ss_menu_value_1, A
+
+    mov     DPTR, #tempo_table_ss_2
+    mov     A, tempo_index
+    movc    A, @A + DPTR
+    mov     ss_menu_value_2, A
+
+interaction_edit_tempo_loop:
+    jb      btn_just_pressed_up, interaction_edit_tempo_up
+    jb      btn_just_pressed_down, interaction_edit_tempo_down
+    jb      btn_just_pressed_ok, interaction_edit_notes
+    sjmp    interaction_edit_tempo_loop
+
+interaction_edit_tempo_up:
+    clr     btn_just_pressed_up
+    mov     A, tempo_index
+    cjne    A, #tempo_max_index, _interaction_edit_tempo_up_inc
+    sjmp    interaction_edit_tempo_loop
+_interaction_edit_tempo_up_inc:
+    inc     A
+    mov     tempo_index, A
+    lcall   tempo_setup_current
+    sjmp    interaction_edit_tempo
+
+interaction_edit_tempo_down:
+    clr     btn_just_pressed_down
+    mov     A, tempo_index
+    cjne    A, #0, _interaction_edit_tempo_down_dec
+    sjmp    interaction_edit_tempo_loop
+_interaction_edit_tempo_down_dec:
+    dec     A
+    mov     tempo_index, A
+    lcall   tempo_setup_current
+    sjmp    interaction_edit_tempo
+
+
+
+;
+; Tempo timer subroutines
+;
+
+tempo_init:
+    mov     tempo_index, tempo_initial_index
+    orl     IE, #(1 << 3)
+    setb    TR1
+
+tempo_setup_current:
+    mov     DPTR, #tempo_table_th
+    mov     A, tempo_index
+    movc    A, @A + DPTR
+    mov     TH1, A
+
+    mov     DPTR, #tempo_table_tl
+    mov     A, tempo_index
+    movc    A, @A + DPTR
+    mov     TL1, A
+
+tempo_reset_soft_counter:
+    mov     DPTR, #tempo_table_sd
+    mov     A, tempo_index
+    movc    A, @A + DPTR
+    mov     tempo_tick, A
+
+    ret
 
 
 ;
@@ -720,7 +807,7 @@ display_ss_digit_on_tab:
 ; Uses A, R0
 input_check:
     clr     A
-    jnb     BTN_OK, _input_check_no_ok
+    jb      BTN_OK, _input_check_no_ok
     setb    ACC.0
 _input_check_no_ok:
     jb      BTN_UP, _input_check_no_up
@@ -798,7 +885,10 @@ _display_coro_blnk_noover:
 _display_coro_ss_digits_loop:
     mov     R7, A                       ; R7 = digit index
     lcall   display_ss_digit_on
-    mov     A, #ss_value_0
+    mov     A, #ss_anim_value_0
+    jnb     display_ss_menu_mode, _display_coro_ss_digits_loop_no_menu
+    mov     A, #ss_menu_value_0
+_display_coro_ss_digits_loop_no_menu:
     add     A, R7
     mov     R0, A
     mov     6, @R0                      ; R6 = segment bits
@@ -890,6 +980,7 @@ _display_note_end:
 
 
 animation_init:
+    ; TODO: Add multiple animations and choose random one
     mov     anim_ptr, #0
     sjmp    _animation_update_1
 
@@ -910,15 +1001,15 @@ _animation_update_1:
     inc     R0
     mov     A, R0
     movc    A, @A + DPTR
-    mov     ss_value_0, A
+    mov     ss_anim_value_0, A
     inc     R0
     mov     A, R0
     movc    A, @A + DPTR
-    mov     ss_value_1, A
+    mov     ss_anim_value_1, A
     inc     R0
     mov     A, R0
     movc    A, @A + DPTR
-    mov     ss_value_2, A
+    mov     ss_anim_value_2, A
     inc     R0
     mov     anim_ptr, R0
 
@@ -928,7 +1019,7 @@ _anim_no_change:
 
 animation_data:
     .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
-    .db 1, SS_CHR_MINUS, SS_CHR_U_LOW, SS_CHR_MINUS ; -u-
+    .db 8, SS_CHR_MINUS, SS_CHR_U_LOW, SS_CHR_MINUS ; -u-
     .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; 0u0
 
 ;
@@ -978,6 +1069,8 @@ setup_note:
     mov     TL0, A
 
     orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle beeper pin on T0 overflow
+
+    ; !!!!!!!!!!! COMMENT TO MUTE IF DEBUGGING GETS ANNOYING !!!!!!!!!!!
     ;setb    TR0
 
     cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
@@ -1258,6 +1351,7 @@ notes_table_tl:
 ; 1) TH per tempo
 tempo_table_th:
     .db 0x14        ; 20 bpm
+    .db 0x8         ; 33.3 bpm
     .db 0x32        ; 40 bpm
     .db 0x48        ; 60 bpm
     .db 0x32        ; 80 bpm
@@ -1266,6 +1360,7 @@ tempo_table_th:
 ; 2) TL per tempo
 tempo_table_tl:
     .db 0x95        ; 20 bpm
+    .db 0x90        ; 33.3 bpm
     .db 0x2         ; 40 bpm
     .db 0xe5        ; 60 bpm
     .db 0x2         ; 80 bpm
@@ -1274,8 +1369,20 @@ tempo_table_tl:
 ; 3) Software divider per tempo
 tempo_table_sd:
     .db 0x7         ; 20 bpm
+    .db 0x4         ; 33.3 bpm
     .db 0x4         ; 40 bpm
     .db 0x3         ; 60 bpm
     .db 0x2         ; 80 bpm
     .db 0x2         ; 120 bpm
     .db 0x1         ; 140 bpm
+.equ tempo_initial_index, 4
+.equ tempo_max_index, 6
+; 4.1) Seven-segment first character per tempo
+tempo_table_ss_0:
+    .db 0, SS_CHR_3, 0, 0, 0, SS_CHR_1, SS_CHR_1
+; 4.2) Seven-segment second character per tempo
+tempo_table_ss_1:
+    .db SS_CHR_2, SS_CHR_3 | SS_SEGB_DP, SS_CHR_4, SS_CHR_6, SS_CHR_8, SS_CHR_2, SS_CHR_4
+; 4.3) Seven-segment third character per tempo
+tempo_table_ss_2:
+    .db SS_CHR_0, SS_CHR_3, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0
