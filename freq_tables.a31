@@ -261,6 +261,28 @@ notes_table_tl:
     .db 0x4         ; Gs10
 ; Index of first note that does need full system frequency
 .equ    FIRST_X12_NOTE_ID, 43
+; Seven-segment characters for first 12 notes
+note_ss_chars:
+    .db SS_CHR_C | SS_SEGB_DP  ; Cs
+    .db SS_CHR_D  ; D
+    .db SS_CHR_D | SS_SEGB_DP  ; Ds
+    .db SS_CHR_E  ; E
+    .db SS_CHR_F  ; F
+    .db SS_CHR_F | SS_SEGB_DP  ; Fs
+    .db SS_CHR_G  ; G
+    .db SS_CHR_G | SS_SEGB_DP  ; Gs
+    .db SS_CHR_A  ; A
+    .db SS_CHR_A | SS_SEGB_DP  ; As
+    .db SS_CHR_B  ; B
+    .db SS_CHR_C  ; C
+.equ initial_base_note, 44
+; Scale tables
+scale_major_offsets:
+    .db 0, 2, 4, 5, 7, 9, 11
+scale_minor_offsets:
+    .db 0, 1, 4, 5, 7, 8, 10
+.equ scale_minor_max_base, 117
+.equ scale_major_max_base, 116
 ; Tempo tables
 ; 1) TH per tempo
 tempo_table_th:

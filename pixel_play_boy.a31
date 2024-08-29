@@ -145,10 +145,11 @@
 
 .equ    SS_CHR_MINUS, SS_SEGB_G
 
-.equ    SS_CHR_A, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_F | SS_SEGB_G
-.equ    SS_CHR_B, SS_SEGB_C | SS_SEGB_D | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_A, SS_SEGB_A | SS_SEGB_B | SS_SEGB_C | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
+.equ    SS_CHR_B, SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
 .equ    SS_CHR_C_UP, SS_SEGB_A | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F
 .equ    SS_CHR_C_LOW, SS_SEGB_D | SS_SEGB_E | SS_SEGB_G
+.equ    SS_CHR_C, SS_CHR_C_UP
 .equ    SS_CHR_D, SS_SEGB_B | SS_SEGB_C | SS_SEGB_D | SS_SEGB_E | SS_SEGB_G
 .equ    SS_CHR_E, SS_SEGB_A | SS_SEGB_D | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
 .equ    SS_CHR_F, SS_SEGB_A | SS_SEGB_E | SS_SEGB_F | SS_SEGB_G
@@ -196,6 +197,8 @@
 
 .equ    tempo_index, ss_menu_value_0 - 1        ; Tempo index
 
+.equ    scale_base, tempo_index - 1             ; Base note for current scale
+
 
 
 ; Bit-addressable variables
@@ -204,6 +207,8 @@
 
 .flag   display_blink_on, aux_bits.0            ; If blinking element on display should be enabled
 .flag   display_ss_menu_mode, aux_bits.1        ; If true - SS display shows characters from ss_menu_value_* else from ss_anim_value_*
+.flag   scale_is_minor, aux_bits.2              ; If current scale is minor
+.flag   scale_pending_major_minor_toggle, aux_bits.3
 
 .equ    btns_pressed, aux_bits - 1              ; Buttons currently pressed
 
@@ -306,6 +311,10 @@ main:
 
     lcall   animation_init
 
+; Scale setup
+    mov     scale_base, #initial_base_note
+    clr     scale_is_minor
+
 ; Sequence setup
     mov     (seq_notes + 0), #1
     mov     (seq_notes + 1), #2
@@ -335,7 +344,7 @@ main:
     sjmp    interaction_edit_notes
 
 interaction_edit_notes:
-    anl     seq_edit_cursor, #0x0F
+    anl     seq_edit_cursor, #0x0f      ; Keep significant bits only (extra bit is added in interaction_edit_tempo to hide the cursor)
     clr     display_ss_menu_mode
     clr     btn_just_pressed_ok
 
@@ -344,7 +353,7 @@ interaction_edit_notes_loop:
     jb      btn_just_pressed_down, interaction_edit_notes_cursor_down
     jb      btn_just_pressed_right, interaction_edit_notes_note_up
     jb      btn_just_pressed_left, interaction_edit_notes_note_down
-    jb      btn_just_pressed_ok, interaction_edit_tempo
+    jb      btn_just_pressed_ok, interaction_edit_scale
     sjmp    interaction_edit_notes_loop
 
 interaction_edit_notes_cursor_up:
@@ -386,12 +395,91 @@ interaction_edit_notes_note_down:
     sjmp    interaction_edit_notes
 
 
+interaction_edit_scale:
+    clr     btn_just_pressed_ok
+    setb    display_ss_menu_mode
+    orl     seq_edit_cursor, #0x10      ; Move edit cursor out of the screen, while preserving significant bits
+
+    mov     A, scale_base
+    mov     B, #12
+    div     AB
+    mov     A, B
+    mov     DPTR, #note_ss_chars
+    movc    A, @A + DPTR
+    mov     ss_menu_value_0, A
+
+    mov     ss_menu_value_1, #0
+    mov     ss_menu_value_2, #0
+    jnb     scale_is_minor, _interaction_edit_scale_loop
+    mov     ss_menu_value_1, #(SS_SEGB_C | SS_SEGB_E | SS_SEGB_G)
+    mov     ss_menu_value_2, #(SS_SEGB_C | SS_SEGB_G)
+_interaction_edit_scale_loop:
+    setb    scale_pending_major_minor_toggle
+    jb      btn_just_pressed_up, interaction_edit_scale_up
+    jb      btn_just_pressed_down, interaction_edit_scale_down
+
+    clr     scale_pending_major_minor_toggle
+    jb      btn_just_pressed_left, interaction_edit_scale_left
+    jb      btn_just_pressed_right, interaction_edit_scale_right
+    jb      btn_just_pressed_ok, interaction_edit_tempo
+    sjmp    _interaction_edit_scale_loop
+
+interaction_edit_scale_left:
+    clr     btn_just_pressed_left
+    mov     A, scale_base
+    subb    A, #7
+    jc      _interaction_edit_scale_loop ; Do not change scale on overflow
+    mov     scale_base, A
+    sjmp    interaction_edit_scale
+
+interaction_edit_scale_right:
+    clr     btn_just_pressed_right
+    mov     A, scale_base
+    add     A, #7
+    sjmp    interaction_edit_scale_check_overflow
+
+interaction_edit_scale_down:
+    clr     btn_just_pressed_down
+    mov     A, scale_base
+    clr     C
+    subb    A, #3
+    jc      _interaction_edit_scale_loop
+    jnb     scale_is_minor, _interaction_edit_scale_down_major
+    subb    A, #6
+    jc      _interaction_edit_scale_loop
+_interaction_edit_scale_down_major:
+    mov     scale_base, A
+    cpl     scale_is_minor
+    sjmp    interaction_edit_scale
+
+interaction_edit_scale_up:
+    clr     btn_just_pressed_up
+    mov     A, scale_base
+    add     A, #3
+    jb      scale_is_minor, interaction_edit_scale_check_overflow
+    add     A, #6
+    ; fallthrough to interaction_edit_scale_check_overflow
+
+interaction_edit_scale_check_overflow:
+    mov     R0, A
+    jb      scale_is_minor, _interaction_edit_scale_check_overflow_minor
+    clr     C
+    subb    A, #scale_major_max_base
+    sjmp    _interaction_edit_scale_check_overflow_set
+_interaction_edit_scale_check_overflow_minor:
+    subb    A, #scale_minor_max_base
+_interaction_edit_scale_check_overflow_set:
+    jnc     _interaction_edit_scale_loop
+    mov     scale_base, R0
+    jnb     scale_pending_major_minor_toggle, interaction_edit_scale
+    cpl     scale_is_minor
+    ljmp    interaction_edit_scale
+
 
 interaction_edit_tempo:
     clr     btn_just_pressed_ok
-    setb    display_ss_menu_mode
-    orl     seq_edit_cursor, #0x10
 
+    ; Show tempo on 7-segment display
     mov     DPTR, #tempo_table_ss_0
     mov     A, tempo_index
     movc    A, @A + DPTR
@@ -410,8 +498,9 @@ interaction_edit_tempo:
 interaction_edit_tempo_loop:
     jb      btn_just_pressed_up, interaction_edit_tempo_up
     jb      btn_just_pressed_down, interaction_edit_tempo_down
-    jb      btn_just_pressed_ok, interaction_edit_notes
-    sjmp    interaction_edit_tempo_loop
+
+    jnb     btn_just_pressed_ok, interaction_edit_tempo_loop
+    ljmp    interaction_edit_notes          ; Need a longer jump
 
 interaction_edit_tempo_up:
     clr     btn_just_pressed_up
@@ -1040,7 +1129,13 @@ setup_current_note:
 _setup_current_note_nonzero:
     dec     A
 
-    add     A, #48 ; TODO: Adjust to scale
+    mov     DPTR, #scale_major_offsets
+    jnb     scale_is_minor, _setup_current_note_not_minor
+    mov     DPTR, #scale_minor_offsets
+_setup_current_note_not_minor:
+    
+    movc    A, @A + DPTR
+    add     A, scale_base
 
     mov     R0, A
     sjmp    setup_note
@@ -1071,7 +1166,7 @@ setup_note:
     orl     INT_CLKO, #INT_CLKO_T0CLKO              ; toggle beeper pin on T0 overflow
 
     ; !!!!!!!!!!! COMMENT TO MUTE IF DEBUGGING GETS ANNOYING !!!!!!!!!!!
-    ;setb    TR0
+    setb    TR0
 
     cjne    R0, #FIRST_X12_NOTE_ID, setup_note_ne
 setup_note_need_x12:
@@ -1081,8 +1176,6 @@ setup_note_ne:
     jnc     setup_note_need_x12  ; if R0 > #FIRST_X12_NOTE_ID
     anl     AUXR, #(0xFF - AUXR_T0x12)
     ret
-
-
 
 ; Note tables
 ; 1) T2H for each note
@@ -1347,6 +1440,28 @@ notes_table_tl:
     .db 0x4         ; Gs10
 ; Index of first note that does need full system frequency
 .equ    FIRST_X12_NOTE_ID, 43
+; Seven-segment characters for first 12 notes
+note_ss_chars:
+    .db SS_CHR_C | SS_SEGB_DP  ; Cs
+    .db SS_CHR_D  ; D
+    .db SS_CHR_D | SS_SEGB_DP  ; Ds
+    .db SS_CHR_E  ; E
+    .db SS_CHR_F  ; F
+    .db SS_CHR_F | SS_SEGB_DP  ; Fs
+    .db SS_CHR_G  ; G
+    .db SS_CHR_G | SS_SEGB_DP  ; Gs
+    .db SS_CHR_A  ; A
+    .db SS_CHR_A | SS_SEGB_DP  ; As
+    .db SS_CHR_B  ; B
+    .db SS_CHR_C  ; C
+.equ initial_base_note, 44
+; Scale tables
+scale_major_offsets:
+    .db 0, 2, 4, 5, 7, 9, 11
+scale_minor_offsets:
+    .db 0, 1, 4, 5, 7, 8, 10
+.equ scale_minor_max_base, 117
+.equ scale_major_max_base, 116
 ; Tempo tables
 ; 1) TH per tempo
 tempo_table_th:

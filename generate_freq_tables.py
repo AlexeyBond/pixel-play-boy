@@ -68,6 +68,22 @@ for note in notes:
 print("; Index of first note that does need full system frequency")
 print(f'.equ    FIRST_X12_NOTE_ID, {first_x12_note_id}')
 
+print('; Seven-segment characters for first 12 notes')
+print('note_ss_chars:')
+
+for note in notes[:12]:
+	print(f'    .db SS_CHR_{note.name[0]}{" | SS_SEGB_DP" if note.name.endswith("s") else ""}  ; {note.name}')
+
+print(f'.equ initial_base_note, {-RANGE[0]}')
+
+print('; Scale tables')
+print('scale_major_offsets:')
+print(f'    .db {", ".join(str(i) for i in MAJOR_SCALE)}')
+print('scale_minor_offsets:')
+print(f'    .db {", ".join(str(i) for i in MINOR_SCALE)}')
+
+print(f'.equ scale_minor_max_base, {len(range(*RANGE)) - 1 - max(MINOR_SCALE)}')
+print(f'.equ scale_major_max_base, {len(range(*RANGE)) - 1 - max(MAJOR_SCALE)}')
 
 print('; Tempo tables')
 
