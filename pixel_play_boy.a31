@@ -427,6 +427,7 @@ _interaction_edit_scale_loop:
 interaction_edit_scale_left:
     clr     btn_just_pressed_left
     mov     A, scale_base
+    clr     C
     subb    A, #7
     jc      _interaction_edit_scale_loop ; Do not change scale on overflow
     mov     scale_base, A
@@ -471,8 +472,9 @@ _interaction_edit_scale_check_overflow_minor:
 _interaction_edit_scale_check_overflow_set:
     jnc     _interaction_edit_scale_loop
     mov     scale_base, R0
-    jnb     scale_pending_major_minor_toggle, interaction_edit_scale
+    jnb     scale_pending_major_minor_toggle, _interaction_edit_scale_check_overflow_no_minor_toggle
     cpl     scale_is_minor
+_interaction_edit_scale_check_overflow_no_minor_toggle:
     ljmp    interaction_edit_scale
 
 
@@ -1109,7 +1111,6 @@ _anim_no_change:
 animation_data:
     .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
     .db 8, SS_CHR_MINUS, SS_CHR_U_LOW, SS_CHR_MINUS ; -u-
-    .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; 0u0
 
 ;
 ; Sound control routines
