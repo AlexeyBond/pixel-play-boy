@@ -383,7 +383,7 @@ tempo_table_sd:
     .db 0x1         ; 880 bpm
     .db 0x1         ; 920 bpm
     .db 0x1         ; 999 bpm
-.equ tempo_initial_index, 5
+.equ tempo_initial_index, 9
 .equ tempo_max_index, 30
 ; 4.1) Seven-segment first character per tempo
 tempo_table_ss_0:

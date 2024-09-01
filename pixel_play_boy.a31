@@ -196,6 +196,8 @@
 
 .equ    scale_base, tempo_index - 1             ; Base note for current scale
 
+.equ    rng_state, scale_base - 1               ; Pseudo-random number generator state
+
 
 
 ; Bit-addressable variables
@@ -271,6 +273,7 @@ _t1i_no_next_note:
 
     lcall display_coro_run
     lcall input_check
+    lcall rng_get
 
     pop     DPH
     pop     DPL
@@ -530,7 +533,7 @@ _interaction_edit_tempo_down_dec:
 ;
 
 tempo_init:
-    mov     tempo_index, tempo_initial_index
+    mov     tempo_index, #tempo_initial_index
     orl     IE, #(1 << 3)
     setb    TR1
 
@@ -1061,6 +1064,21 @@ _display_note_end:
     ljmp    display_coro_loop
 
 
+;
+; Random number generator
+;
+
+rng_get:
+    mov     A, rng_state
+    mov     B, #17
+    mul     AB
+    add     A, #111
+    add     A, btns_pressed
+    mov     B, #255
+    div     AB
+    mov     A, B
+    mov     rng_state, A
+    ret
 
 ;
 ; Animation (on 7-segment display)
@@ -1068,8 +1086,14 @@ _display_note_end:
 
 
 animation_init:
-    ; TODO: Add multiple animations and choose random one
-    mov     anim_ptr, #(animation_1 - animation_data)
+    lcall   rng_get
+    rr      A
+    rr      A
+    rr      A
+    anl     A, #0x0f
+    mov     DPTR, #animation_index
+    movc    A, @A + DPTR
+    mov     anim_ptr, A
     sjmp    _animation_update_1
 
 animation_frame:
@@ -1105,6 +1129,24 @@ _animation_update_1:
 _anim_no_change:
     ret
 
+animation_index:
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_1 - animation_data)
+    .db (animation_2 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_2 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+    .db (animation_0 - animation_data)
+
 animation_data:
 animation_0:
     .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
@@ -1120,9 +1162,10 @@ animation_1:
     .db 2, SS_CHR_U_UP, SS_CHR_U_LOW, SS_SEGB_C | SS_SEGB_D         ; Uw
     .db 3, SS_CHR_U_UP, SS_CHR_U_LOW, SS_CHR_U_UP                   ; UuU
 animation_2:
-    .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
-    .db 8, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F, SS_SEGB_D, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F ; ^_^
-
+    .db 7, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
+    .db 1, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F, SS_CHR_U_LOW, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F ; ^u^
+    .db 7, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F, SS_SEGB_D, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F ; ^_^
+    .db 1, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F, SS_CHR_U_LOW, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F ; ^u^
 ;
 ; Sound control routines
 ;
@@ -1576,7 +1619,7 @@ tempo_table_sd:
     .db 0x1         ; 880 bpm
     .db 0x1         ; 920 bpm
     .db 0x1         ; 999 bpm
-.equ tempo_initial_index, 5
+.equ tempo_initial_index, 9
 .equ tempo_max_index, 30
 ; 4.1) Seven-segment first character per tempo
 tempo_table_ss_0:
