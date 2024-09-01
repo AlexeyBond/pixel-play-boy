@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 
+# Script that generates some constants/tables related to frequencies and timings
+# including timer settings for tone generation and timing interrupts.
+
+# MCU clock frequency
 SYSTEM_CLOCK = 27_000_000
 
+# Base frequency for tones [Hz]
 A4_FREQ = 440
+
+# Range of playable tones, relative to A4
 RANGE = (-44, 84)
 
+# Tempo values, supported by the device [fourths/minute]
 BPMS = [20, 33.3, 40, 42, 60, 80, 120, 140, 160, 180, 200, 220, 240, 260, 280, 320, 360, 400, 420, 440, 480, 512, 520, 600, 666, 680, 720, 820, 880, 920, 999]
+
+# Initial tempo, must be one of the above
 BPM_INITIAL = 180
 
 
