@@ -1,6 +1,3 @@
-; /d/progs/sdcc/bin/as31.exe -l ./pixel_play_boy.a31
-
-
 ;
 ; STC15F2K60S2 specific definitions
 ;
@@ -1072,7 +1069,7 @@ _display_note_end:
 
 animation_init:
     ; TODO: Add multiple animations and choose random one
-    mov     anim_ptr, #0
+    mov     anim_ptr, #(animation_1 - animation_data)
     sjmp    _animation_update_1
 
 animation_frame:
@@ -1109,8 +1106,22 @@ _anim_no_change:
     ret
 
 animation_data:
+animation_0:
     .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
     .db 8, SS_CHR_MINUS, SS_CHR_U_LOW, SS_CHR_MINUS ; -u-
+animation_1:
+    .db 3, SS_CHR_U_UP, SS_CHR_U_LOW, SS_CHR_U_UP                   ; UuU
+    .db 2, SS_SEGB_D | SS_SEGB_E, SS_CHR_U_LOW, SS_CHR_U_UP         ; wU
+    .db 1, SS_CHR_U_LOW, SS_CHR_U_UP, 0                             ; uU
+    .db 1, SS_CHR_U_UP, 0, 0                                        ; U
+    .db 2, 0, 0, 0
+    .db 1, 0, 0, SS_CHR_U_UP                                        ;   U
+    .db 1, 0, SS_CHR_U_UP, SS_CHR_U_LOW                             ;  Uu
+    .db 2, SS_CHR_U_UP, SS_CHR_U_LOW, SS_SEGB_C | SS_SEGB_D         ; Uw
+    .db 3, SS_CHR_U_UP, SS_CHR_U_LOW, SS_CHR_U_UP                   ; UuU
+animation_2:
+    .db 8, SS_CHR_0, SS_CHR_U_LOW, SS_CHR_0         ; OuO
+    .db 8, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F, SS_SEGB_D, SS_SEGB_A | SS_SEGB_B | SS_SEGB_F ; ^_^
 
 ;
 ; Sound control routines
@@ -1177,6 +1188,8 @@ setup_note_ne:
     jnc     setup_note_need_x12  ; if R0 > #FIRST_X12_NOTE_ID
     anl     AUXR, #(0xFF - AUXR_T0x12)
     ret
+
+
 
 ; Note tables
 ; 1) T2H for each note
@@ -1460,45 +1473,117 @@ note_ss_chars:
 scale_major_offsets:
     .db 0, 2, 4, 5, 7, 9, 11
 scale_minor_offsets:
-    .db 0, 1, 4, 5, 7, 8, 10
+    .db 0, 2, 3, 5, 7, 8, 10
 .equ scale_minor_max_base, 117
 .equ scale_major_max_base, 116
 ; Tempo tables
 ; 1) TH per tempo
 tempo_table_th:
-    .db 0x14        ; 20 bpm
+    .db 0x2         ; 20 bpm
     .db 0x8         ; 33.3 bpm
-    .db 0x32        ; 40 bpm
-    .db 0x48        ; 60 bpm
-    .db 0x32        ; 80 bpm
-    .db 0x76        ; 120 bpm
+    .db 0x2         ; 40 bpm
+    .db 0xe         ; 42 bpm
+    .db 0xb         ; 60 bpm
+    .db 0x14        ; 80 bpm
+    .db 0x24        ; 120 bpm
     .db 0x14        ; 140 bpm
+    .db 0x32        ; 160 bpm
+    .db 0xb         ; 180 bpm
+    .db 0x24        ; 200 bpm
+    .db 0x38        ; 220 bpm
+    .db 0x48        ; 240 bpm
+    .db 0x2         ; 260 bpm
+    .db 0x14        ; 280 bpm
+    .db 0x32        ; 320 bpm
+    .db 0x48        ; 360 bpm
+    .db 0x5b        ; 400 bpm
+    .db 0x63        ; 420 bpm
+    .db 0x6a        ; 440 bpm
+    .db 0x76        ; 480 bpm
+    .db 0x7f        ; 512 bpm
+    .db 0x2         ; 520 bpm
+    .db 0x24        ; 600 bpm
+    .db 0x3a        ; 666 bpm
+    .db 0x3e        ; 680 bpm
+    .db 0x48        ; 720 bpm
+    .db 0x5f        ; 820 bpm
+    .db 0x6a        ; 880 bpm
+    .db 0x70        ; 920 bpm
+    .db 0x7c        ; 999 bpm
 ; 2) TL per tempo
 tempo_table_tl:
-    .db 0x95        ; 20 bpm
+    .db 0x79        ; 20 bpm
     .db 0x90        ; 33.3 bpm
-    .db 0x2         ; 40 bpm
-    .db 0xe5        ; 60 bpm
-    .db 0x2         ; 80 bpm
-    .db 0xac        ; 120 bpm
+    .db 0x79        ; 40 bpm
+    .db 0x8b        ; 42 bpm
+    .db 0xdc        ; 60 bpm
+    .db 0x95        ; 80 bpm
+    .db 0x46        ; 120 bpm
     .db 0x95        ; 140 bpm
+    .db 0x2         ; 160 bpm
+    .db 0xdc        ; 180 bpm
+    .db 0x46        ; 200 bpm
+    .db 0x40        ; 220 bpm
+    .db 0xe5        ; 240 bpm
+    .db 0x79        ; 260 bpm
+    .db 0x95        ; 280 bpm
+    .db 0x2         ; 320 bpm
+    .db 0xe5        ; 360 bpm
+    .db 0x35        ; 400 bpm
+    .db 0xe         ; 420 bpm
+    .db 0x30        ; 440 bpm
+    .db 0xac        ; 480 bpm
+    .db 0x42        ; 512 bpm
+    .db 0x79        ; 520 bpm
+    .db 0x46        ; 600 bpm
+    .db 0xd         ; 666 bpm
+    .db 0x20        ; 680 bpm
+    .db 0xe5        ; 720 bpm
+    .db 0x3a        ; 820 bpm
+    .db 0x30        ; 880 bpm
+    .db 0xb4        ; 920 bpm
+    .db 0x9         ; 999 bpm
 ; 3) Software divider per tempo
 tempo_table_sd:
-    .db 0x7         ; 20 bpm
-    .db 0x4         ; 33.3 bpm
-    .db 0x4         ; 40 bpm
-    .db 0x3         ; 60 bpm
-    .db 0x2         ; 80 bpm
-    .db 0x2         ; 120 bpm
-    .db 0x1         ; 140 bpm
-.equ tempo_initial_index, 4
-.equ tempo_max_index, 6
+    .db 0x1a        ; 20 bpm
+    .db 0x10        ; 33.3 bpm
+    .db 0xd         ; 40 bpm
+    .db 0xd         ; 42 bpm
+    .db 0x9         ; 60 bpm
+    .db 0x7         ; 80 bpm
+    .db 0x5         ; 120 bpm
+    .db 0x4         ; 140 bpm
+    .db 0x4         ; 160 bpm
+    .db 0x3         ; 180 bpm
+    .db 0x3         ; 200 bpm
+    .db 0x3         ; 220 bpm
+    .db 0x3         ; 240 bpm
+    .db 0x2         ; 260 bpm
+    .db 0x2         ; 280 bpm
+    .db 0x2         ; 320 bpm
+    .db 0x2         ; 360 bpm
+    .db 0x2         ; 400 bpm
+    .db 0x2         ; 420 bpm
+    .db 0x2         ; 440 bpm
+    .db 0x2         ; 480 bpm
+    .db 0x2         ; 512 bpm
+    .db 0x1         ; 520 bpm
+    .db 0x1         ; 600 bpm
+    .db 0x1         ; 666 bpm
+    .db 0x1         ; 680 bpm
+    .db 0x1         ; 720 bpm
+    .db 0x1         ; 820 bpm
+    .db 0x1         ; 880 bpm
+    .db 0x1         ; 920 bpm
+    .db 0x1         ; 999 bpm
+.equ tempo_initial_index, 5
+.equ tempo_max_index, 30
 ; 4.1) Seven-segment first character per tempo
 tempo_table_ss_0:
-    .db 0, SS_CHR_3, 0, 0, 0, SS_CHR_1, SS_CHR_1
+    .db 0, SS_CHR_3, 0, 0, 0, 0, SS_CHR_1, SS_CHR_1, SS_CHR_1, SS_CHR_1, SS_CHR_2, SS_CHR_2, SS_CHR_2, SS_CHR_2, SS_CHR_2, SS_CHR_3, SS_CHR_3, SS_CHR_4, SS_CHR_4, SS_CHR_4, SS_CHR_4, SS_CHR_5, SS_CHR_5, SS_CHR_6, SS_CHR_6, SS_CHR_6, SS_CHR_7, SS_CHR_8, SS_CHR_8, SS_CHR_9, SS_CHR_9
 ; 4.2) Seven-segment second character per tempo
 tempo_table_ss_1:
-    .db SS_CHR_2, SS_CHR_3 | SS_SEGB_DP, SS_CHR_4, SS_CHR_6, SS_CHR_8, SS_CHR_2, SS_CHR_4
+    .db SS_CHR_2, SS_CHR_3 | SS_SEGB_DP, SS_CHR_4, SS_CHR_4, SS_CHR_6, SS_CHR_8, SS_CHR_2, SS_CHR_4, SS_CHR_6, SS_CHR_8, SS_CHR_0, SS_CHR_2, SS_CHR_4, SS_CHR_6, SS_CHR_8, SS_CHR_2, SS_CHR_6, SS_CHR_0, SS_CHR_2, SS_CHR_4, SS_CHR_8, SS_CHR_1, SS_CHR_2, SS_CHR_0, SS_CHR_6, SS_CHR_8, SS_CHR_2, SS_CHR_2, SS_CHR_8, SS_CHR_2, SS_CHR_9
 ; 4.3) Seven-segment third character per tempo
 tempo_table_ss_2:
-    .db SS_CHR_0, SS_CHR_3, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0
+    .db SS_CHR_0, SS_CHR_3, SS_CHR_0, SS_CHR_2, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_2, SS_CHR_0, SS_CHR_0, SS_CHR_6, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_0, SS_CHR_9

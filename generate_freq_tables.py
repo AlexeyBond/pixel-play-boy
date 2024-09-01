@@ -5,7 +5,7 @@ SYSTEM_CLOCK = 27_000_000
 A4_FREQ = 440
 RANGE = (-44, 84)
 
-BPMS = [20, 33.3, 40, 60, 80, 120, 140]
+BPMS = [20, 33.3, 40, 42, 60, 80, 120, 140, 160, 180, 200, 220, 240, 260, 280, 320, 360, 400, 420, 440, 480, 512, 520, 600, 666, 680, 720, 820, 880, 920, 999]
 BPM_INITIAL = 80
 
 
@@ -18,7 +18,7 @@ assert BPM_INITIAL in BPMS
 
 NOTE_NAMES = ['A', 'As', 'B', 'C', 'Cs', 'D', 'Ds', 'E', 'F', 'Fs', 'G', 'Gs']
 MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11]
-MINOR_SCALE = [0, 1, 4, 5, 7, 8, 10] #?
+MINOR_SCALE = [0, 2, 3, 5, 7, 8, 10]
 
 class Note(NamedTuple):
 	name: str
@@ -88,7 +88,7 @@ print(f'.equ scale_major_max_base, {len(range(*RANGE)) - 1 - max(MAJOR_SCALE)}')
 print('; Tempo tables')
 
 def calc_tempo_dividers(bpm) -> (int, int):
-	total_div = (60 / (16 * bpm)) * (SYSTEM_CLOCK / 12)
+	total_div = 4 * (60 / (16 * bpm)) * (SYSTEM_CLOCK / 12)
 
 	divider_1, divider_2 = None, None
 
