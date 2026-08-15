@@ -4,6 +4,8 @@ An alternative firmware for STC15F2K60S2-based game kit that turns it into a mus
 
 Because just soldering few parts together and playing Tetris for few minutes is not fun enough.
 
+[![Demo](https://img.youtube.com/vi/zKxccZI6yTM/0.jpg)](https://youtu.be/zKxccZI6yTM)
+
 ## Hardware modifications
 
 This firmware requires some changes in original kit schematic:
